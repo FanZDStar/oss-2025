@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PySecScanner 安全扫描报告</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .info-table th, .info-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .info-table th {
+            background: #f8f9fa;
+            width: 150px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .summary-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+        }
+        .summary-card.critical { background: #dc3545; }
+        .summary-card.high { background: #fd7e14; }
+        .summary-card.medium { background: #ffc107; color: #333; }
+        .summary-card.low { background: #28a745; }
+        .summary-card .count {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        .vuln-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .vuln-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .vuln-body {
+            padding: 15px;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.8em;
+            margin-right: 10px;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+        .success-msg {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .footer {
+            text-align: center;
+            color: #666;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ PySecScanner 安全扫描报告</h1>
+        
+        <h2>📋 扫描信息</h2>
+        <table class="info-table">
+            <tr><th>扫描目标</th><td><code>tests\samples</code></td></tr>
+            <tr><th>扫描时间</th><td>2026-01-24 12:51:53</td></tr>
+            <tr><th>扫描耗时</th><td>0.01 秒</td></tr>
+            <tr><th>扫描文件数</th><td>3</td></tr>
+        </table>
+        
+        <h2>📊 漏洞统计</h2>
+        <div class="summary-grid">
+            <div class="summary-card critical">
+                <div class="count">6</div>
+                <div>严重</div>
+            </div>
+            <div class="summary-card high">
+                <div class="count">13</div>
+                <div>高危</div>
+            </div>
+            <div class="summary-card medium">
+                <div class="count">7</div>
+                <div>中危</div>
+            </div>
+            <div class="summary-card low">
+                <div class="count">0</div>
+                <div>低危</div>
+            </div>
+        </div>
+        
+        <h2>🔍 漏洞详情</h2>
+        
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[CMD001] 命令注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:50</code></p>
+                        <p><strong>描述:</strong> 调用危险函数 os.system(): 直接执行shell命令</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>os.system("ping " + user_input)</code></pre>
+                        <p><strong>修复建议:</strong> 避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[CMD001] 命令注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:56</code></p>
+                        <p><strong>描述:</strong> 调用 subprocess.run() 时使用 shell=True，存在命令注入风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>result = subprocess.run(cmd, shell=True, capture_output=True)</code></pre>
+                        <p><strong>修复建议:</strong> 避免使用 shell=True；使用参数列表传递命令；对用户输入进行严格校验</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[CMD001] 命令注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:63</code></p>
+                        <p><strong>描述:</strong> 调用危险函数 os.popen(): 执行命令并返回文件对象</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>output = os.popen(f"cat {filename}").read()</code></pre>
+                        <p><strong>修复建议:</strong> 避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[DNG001] 危险函数调用</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:91</code></p>
+                        <p><strong>描述:</strong> 调用危险函数 eval(): 执行任意Python表达式，可导致远程代码执行</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>result = eval(user_expr)</code></pre>
+                        <p><strong>修复建议:</strong> 避免使用eval；如需解析字面量，使用ast.literal_eval</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[DNG001] 危险函数调用</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:98</code></p>
+                        <p><strong>描述:</strong> 调用危险函数 exec(): 执行任意Python代码，可导致远程代码执行</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>exec(user_code)</code></pre>
+                        <p><strong>修复建议:</strong> 避免使用exec；重新设计程序逻辑避免动态代码执行</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #dc3545;">
+                            CRITICAL
+                        </span>
+                        <strong>[DNG001] 危险函数调用</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:104</code></p>
+                        <p><strong>描述:</strong> 调用危险方法 pickle.loads(): 反序列化不可信数据可导致远程代码执行</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>obj = pickle.loads(data)</code></pre>
+                        <p><strong>修复建议:</strong> 避免反序列化不可信数据；使用json等安全格式</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[DNG001] 危险函数调用</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\safe_code.py:81</code></p>
+                        <p><strong>描述:</strong> 调用危险方法 yaml.load(): 不安全的YAML解析，可执行任意Python代码</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>return yaml.load(yaml_content, Loader=yaml.SafeLoader)</code></pre>
+                        <p><strong>修复建议:</strong> 使用yaml.safe_load代替yaml.load</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SQL001] SQL注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:20</code></p>
+                        <p><strong>描述:</strong> 使用 % 格式化拼接SQL语句，存在SQL注入风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>query = "SELECT * FROM users WHERE id = '%s'" % user_id</code></pre>
+                        <p><strong>修复建议:</strong> 使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SQL001] SQL注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:30</code></p>
+                        <p><strong>描述:</strong> 使用 f-string 拼接SQL语句，存在SQL注入风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>query = f"SELECT * FROM users WHERE username = '{username}'"</code></pre>
+                        <p><strong>修复建议:</strong> 使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SQL001] SQL注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:40</code></p>
+                        <p><strong>描述:</strong> 使用 + 连接拼接SQL语句，存在SQL注入风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>query = "SELECT * FROM " + table_name + " WHERE active = 1"</code></pre>
+                        <p><strong>修复建议:</strong> 使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SQL001] SQL注入风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:40</code></p>
+                        <p><strong>描述:</strong> 使用 + 连接拼接SQL语句，存在SQL注入风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>query = "SELECT * FROM " + table_name + " WHERE active = 1"</code></pre>
+                        <p><strong>修复建议:</strong> 使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SEC001] 硬编码敏感信息</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:70</code></p>
+                        <p><strong>描述:</strong> 变量 'DATABASE_PASSWORD' 包含硬编码的敏感信息，可能导致凭据泄露</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>DATABASE_PASSWORD = "super_secret_password_123"</code></pre>
+                        <p><strong>修复建议:</strong> 使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SEC001] 硬编码敏感信息</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:71</code></p>
+                        <p><strong>描述:</strong> 变量 'API_KEY' 包含硬编码的敏感信息，可能导致凭据泄露</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>API_KEY = "sk-1234567890abcdef"</code></pre>
+                        <p><strong>修复建议:</strong> 使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SEC001] 硬编码敏感信息</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:72</code></p>
+                        <p><strong>描述:</strong> 变量 'SECRET_TOKEN' 包含硬编码的敏感信息，可能导致凭据泄露</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>SECRET_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"</code></pre>
+                        <p><strong>修复建议:</strong> 使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SEC001] 硬编码敏感信息</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:76</code></p>
+                        <p><strong>描述:</strong> 变量 'password' 包含硬编码的敏感信息，可能导致凭据泄露</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>password = "mysql_password_2024"  # 危险：硬编码密码</code></pre>
+                        <p><strong>修复建议:</strong> 使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[SEC001] 硬编码敏感信息</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:82</code></p>
+                        <p><strong>描述:</strong> 变量 'secret' 包含硬编码的敏感信息，可能导致凭据泄露</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>secret = "aws_secret_access_key_xxxxx"  # 危险</code></pre>
+                        <p><strong>修复建议:</strong> 使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[DNG001] 危险函数调用</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:111</code></p>
+                        <p><strong>描述:</strong> 调用危险方法 yaml.load(): 不安全的YAML解析，可执行任意Python代码</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>data = yaml.load(yaml_content)</code></pre>
+                        <p><strong>修复建议:</strong> 使用yaml.safe_load代替yaml.load</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[XSS001] XSS风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:145</code></p>
+                        <p><strong>描述:</strong> 调用 render_template_string() 渲染包含用户输入的模板，存在XSS风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>return render_template_string(template)</code></pre>
+                        <p><strong>修复建议:</strong> 使用 render_template() 渲染模板文件而非字符串；确保对用户输入进行HTML转义；使用模板引擎的自动转义功能</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #fd7e14;">
+                            HIGH
+                        </span>
+                        <strong>[XSS001] XSS风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:151</code></p>
+                        <p><strong>描述:</strong> 调用 mark_safe() 将包含用户输入的内容标记为安全，存在XSS风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>return mark_safe(f"<div>{user_content}</div>")</code></pre>
+                        <p><strong>修复建议:</strong> 永远不要将用户输入直接标记为安全；使用 format_html() 或手动转义后再标记</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\safe_code.py:68</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>with open(config_path, 'r') as f:</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\safe_code.py:95</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>with open(target, 'r') as f:</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\safe_code.py:106</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>with open(f"./data/{filename}", 'r') as f:</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:127</code></p>
+                        <p><strong>描述:</strong> os.path.join() 的参数可能来自用户输入，如果包含 '../' 可导致路径遍历</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>file_path = os.path.join(base_dir, user_path)</code></pre>
+                        <p><strong>修复建议:</strong> 在拼接前使用os.path.basename()清理用户输入；拼接后使用os.path.realpath()验证最终路径是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:120</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>with open(filename, 'r') as f:</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:135</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>with open(f"/uploads/{filename}", 'rb') as f:</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+                <div class="vuln-card">
+                    <div class="vuln-header">
+                        <span class="severity-badge" style="background-color: #ffc107;">
+                            MEDIUM
+                        </span>
+                        <strong>[PTH001] 路径遍历风险</strong>
+                    </div>
+                    <div class="vuln-body">
+                        <p><strong>位置:</strong> <code>D:\project\oss-2025\python-security-scanner\tests\samples\vulnerable_code.py:128</code></p>
+                        <p><strong>描述:</strong> 调用 open() 的路径参数可能来自用户输入，存在路径遍历风险</p>
+                        <p><strong>问题代码:</strong></p>
+                        <pre><code>return open(file_path, 'r').read()</code></pre>
+                        <p><strong>修复建议:</strong> 对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内</p>
+                    </div>
+                </div>
+                
+        
+        <div class="footer">
+            <p>报告由 PySecScanner v1.0.0 生成 | 2026-01-24 12:51:53</p>
+        </div>
+    </div>
+</body>
+</html>

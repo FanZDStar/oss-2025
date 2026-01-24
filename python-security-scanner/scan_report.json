@@ -1,0 +1,302 @@
+{
+  "target": "tests\\samples",
+  "scan_time": "2026-01-24T12:51:53.234780",
+  "duration": 0.008000373840332031,
+  "files_scanned": 3,
+  "summary": {
+    "total": 26,
+    "critical": 6,
+    "high": 13,
+    "medium": 7,
+    "low": 0
+  },
+  "vulnerabilities": [
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\safe_code.py",
+      "line_number": 81,
+      "column": 11,
+      "code_snippet": "return yaml.load(yaml_content, Loader=yaml.SafeLoader)",
+      "description": "调用危险方法 yaml.load(): 不安全的YAML解析，可执行任意Python代码",
+      "suggestion": "使用yaml.safe_load代替yaml.load"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\safe_code.py",
+      "line_number": 68,
+      "column": 9,
+      "code_snippet": "with open(config_path, 'r') as f:",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\safe_code.py",
+      "line_number": 95,
+      "column": 9,
+      "code_snippet": "with open(target, 'r') as f:",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\safe_code.py",
+      "line_number": 106,
+      "column": 9,
+      "code_snippet": "with open(f\"./data/{filename}\", 'r') as f:",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "SQL001",
+      "rule_name": "SQL注入风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 20,
+      "column": 12,
+      "code_snippet": "query = \"SELECT * FROM users WHERE id = '%s'\" % user_id",
+      "description": "使用 % 格式化拼接SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作"
+    },
+    {
+      "rule_id": "SQL001",
+      "rule_name": "SQL注入风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 30,
+      "column": 12,
+      "code_snippet": "query = f\"SELECT * FROM users WHERE username = '{username}'\"",
+      "description": "使用 f-string 拼接SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作"
+    },
+    {
+      "rule_id": "SQL001",
+      "rule_name": "SQL注入风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 40,
+      "column": 12,
+      "code_snippet": "query = \"SELECT * FROM \" + table_name + \" WHERE active = 1\"",
+      "description": "使用 + 连接拼接SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作"
+    },
+    {
+      "rule_id": "SQL001",
+      "rule_name": "SQL注入风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 40,
+      "column": 12,
+      "code_snippet": "query = \"SELECT * FROM \" + table_name + \" WHERE active = 1\"",
+      "description": "使用 + 连接拼接SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作"
+    },
+    {
+      "rule_id": "CMD001",
+      "rule_name": "命令注入风险",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 50,
+      "column": 4,
+      "code_snippet": "os.system(\"ping \" + user_input)",
+      "description": "调用危险函数 os.system(): 直接执行shell命令",
+      "suggestion": "避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入"
+    },
+    {
+      "rule_id": "CMD001",
+      "rule_name": "命令注入风险",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 56,
+      "column": 13,
+      "code_snippet": "result = subprocess.run(cmd, shell=True, capture_output=True)",
+      "description": "调用 subprocess.run() 时使用 shell=True，存在命令注入风险",
+      "suggestion": "避免使用 shell=True；使用参数列表传递命令；对用户输入进行严格校验"
+    },
+    {
+      "rule_id": "CMD001",
+      "rule_name": "命令注入风险",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 63,
+      "column": 13,
+      "code_snippet": "output = os.popen(f\"cat {filename}\").read()",
+      "description": "调用危险函数 os.popen(): 执行命令并返回文件对象",
+      "suggestion": "避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 70,
+      "column": 0,
+      "code_snippet": "DATABASE_PASSWORD = \"super_secret_password_123\"",
+      "description": "变量 'DATABASE_PASSWORD' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 71,
+      "column": 0,
+      "code_snippet": "API_KEY = \"sk-1234567890abcdef\"",
+      "description": "变量 'API_KEY' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 72,
+      "column": 0,
+      "code_snippet": "SECRET_TOKEN = \"ghp_xxxxxxxxxxxxxxxxxxxx\"",
+      "description": "变量 'SECRET_TOKEN' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 76,
+      "column": 4,
+      "code_snippet": "password = \"mysql_password_2024\"  # 危险：硬编码密码",
+      "description": "变量 'password' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 82,
+      "column": 4,
+      "code_snippet": "secret = \"aws_secret_access_key_xxxxx\"  # 危险",
+      "description": "变量 'secret' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 91,
+      "column": 13,
+      "code_snippet": "result = eval(user_expr)",
+      "description": "调用危险函数 eval(): 执行任意Python表达式，可导致远程代码执行",
+      "suggestion": "避免使用eval；如需解析字面量，使用ast.literal_eval"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 98,
+      "column": 4,
+      "code_snippet": "exec(user_code)",
+      "description": "调用危险函数 exec(): 执行任意Python代码，可导致远程代码执行",
+      "suggestion": "避免使用exec；重新设计程序逻辑避免动态代码执行"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 104,
+      "column": 10,
+      "code_snippet": "obj = pickle.loads(data)",
+      "description": "调用危险方法 pickle.loads(): 反序列化不可信数据可导致远程代码执行",
+      "suggestion": "避免反序列化不可信数据；使用json等安全格式"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 111,
+      "column": 11,
+      "code_snippet": "data = yaml.load(yaml_content)",
+      "description": "调用危险方法 yaml.load(): 不安全的YAML解析，可执行任意Python代码",
+      "suggestion": "使用yaml.safe_load代替yaml.load"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 127,
+      "column": 16,
+      "code_snippet": "file_path = os.path.join(base_dir, user_path)",
+      "description": "os.path.join() 的参数可能来自用户输入，如果包含 '../' 可导致路径遍历",
+      "suggestion": "在拼接前使用os.path.basename()清理用户输入；拼接后使用os.path.realpath()验证最终路径是否在允许的目录内"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 120,
+      "column": 9,
+      "code_snippet": "with open(filename, 'r') as f:",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 135,
+      "column": 9,
+      "code_snippet": "with open(f\"/uploads/{filename}\", 'rb') as f:",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "PTH001",
+      "rule_name": "路径遍历风险",
+      "severity": "medium",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 128,
+      "column": 11,
+      "code_snippet": "return open(file_path, 'r').read()",
+      "description": "调用 open() 的路径参数可能来自用户输入，存在路径遍历风险",
+      "suggestion": "对文件路径进行严格校验；使用os.path.basename()提取文件名；使用os.path.realpath()解析真实路径后验证是否在允许的目录内"
+    },
+    {
+      "rule_id": "XSS001",
+      "rule_name": "XSS风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 145,
+      "column": 11,
+      "code_snippet": "return render_template_string(template)",
+      "description": "调用 render_template_string() 渲染包含用户输入的模板，存在XSS风险",
+      "suggestion": "使用 render_template() 渲染模板文件而非字符串；确保对用户输入进行HTML转义；使用模板引擎的自动转义功能"
+    },
+    {
+      "rule_id": "XSS001",
+      "rule_name": "XSS风险",
+      "severity": "high",
+      "file_path": "D:\\project\\oss-2025\\python-security-scanner\\tests\\samples\\vulnerable_code.py",
+      "line_number": 151,
+      "column": 11,
+      "code_snippet": "return mark_safe(f\"<div>{user_content}</div>\")",
+      "description": "调用 mark_safe() 将包含用户输入的内容标记为安全，存在XSS风险",
+      "suggestion": "永远不要将用户输入直接标记为安全；使用 format_html() 或手动转义后再标记"
+    }
+  ],
+  "errors": []
+}
