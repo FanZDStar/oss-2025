@@ -47,6 +47,7 @@ def create_parser() -> argparse.ArgumentParser:
         default="text",
         help="报告输出格式 (默认: text)",
     )
+    scan_parser.add_argument("-c", "--config", type=str, default=None, help="指定配置文件路径")
     scan_parser.add_argument(
         "--exclude", type=str, default=None, help="排除的目录，逗号分隔 (如: tests,docs,venv)"
     )
@@ -82,16 +83,32 @@ def cmd_scan(args):
         print(f"错误: 目标路径不存在: {args.target}", file=sys.stderr)
         return 1
 
-    # 自动发现并加载配置文件
+    # 加载配置文件
     loaded_config = None
-    config_file = Config.find_config_file(target if target.is_dir() else target.parent)
-    if config_file:
+
+    # 优先使用 --config 指定的配置文件
+    if args.config:
+        config_file = Path(args.config)
+        if not config_file.exists():
+            print(f"错误: 配置文件不存在: {args.config}", file=sys.stderr)
+            return 1
         try:
             loaded_config = Config.load_from_file(config_file)
             if not args.quiet:
                 print(f"加载配置文件: {config_file}")
         except Exception as e:
-            print(f"警告: 加载配置文件失败: {e}", file=sys.stderr)
+            print(f"错误: 加载配置文件失败: {e}", file=sys.stderr)
+            return 1
+    else:
+        # 自动发现配置文件
+        config_file = Config.find_config_file(target if target.is_dir() else target.parent)
+        if config_file:
+            try:
+                loaded_config = Config.load_from_file(config_file)
+                if not args.quiet:
+                    print(f"加载配置文件: {config_file}")
+            except Exception as e:
+                print(f"警告: 加载配置文件失败: {e}", file=sys.stderr)
 
     # 构建配置（命令行参数优先）
     config = {}
