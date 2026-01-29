@@ -12,6 +12,7 @@ from pathlib import Path
 from .engine import SecurityScanner
 from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules
+from .config import Config
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -81,9 +82,28 @@ def cmd_scan(args):
         print(f"错误: 目标路径不存在: {args.target}", file=sys.stderr)
         return 1
 
-    # 构建配置
+    # 自动发现并加载配置文件
+    loaded_config = None
+    config_file = Config.find_config_file(target if target.is_dir() else target.parent)
+    if config_file:
+        try:
+            loaded_config = Config.load_from_file(config_file)
+            if not args.quiet:
+                print(f"加载配置文件: {config_file}")
+        except Exception as e:
+            print(f"警告: 加载配置文件失败: {e}", file=sys.stderr)
+
+    # 构建配置（命令行参数优先）
     config = {}
 
+    # 从配置文件应用设置
+    if loaded_config:
+        if loaded_config.exclude_dirs:
+            config["exclude_dirs"] = set(loaded_config.exclude_dirs)
+        if loaded_config.rules_enabled:
+            config["enabled_rules"] = set(loaded_config.rules_enabled)
+
+    # 命令行参数覆盖配置文件
     if args.exclude:
         config["exclude_dirs"] = set(args.exclude.split(","))
 
@@ -92,6 +112,8 @@ def cmd_scan(args):
 
     if args.severity:
         config["min_severity"] = args.severity
+    elif loaded_config and loaded_config.minimum_severity:
+        config["min_severity"] = loaded_config.minimum_severity
 
     # 创建扫描器
     scanner = SecurityScanner(config)
