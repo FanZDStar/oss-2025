@@ -107,9 +107,44 @@ class Config:
         if suffix in [".yaml", ".yml"] or file_path.name == ".pysecrc":
             return cls.load_from_yaml(file_path)
         elif suffix == ".toml":
+            # 如果是 pyproject.toml，使用专门的方法
+            if file_path.name == "pyproject.toml":
+                return cls.load_from_pyproject(file_path)
             return cls.load_from_toml(file_path)
         else:
             raise ValueError(f"不支持的配置文件格式: {suffix}")
+
+    @classmethod
+    def load_from_pyproject(cls, file_path: Path) -> "Config":
+        """从 pyproject.toml 的 [tool.pysec] 节加载配置。
+
+        Args:
+            file_path: pyproject.toml 文件路径
+
+        Returns:
+            Config: 配置对象
+
+        Raises:
+            FileNotFoundError: pyproject.toml 不存在
+            ValueError: 未找到 [tool.pysec] 配置节
+        """
+        if tomllib is None:
+            raise ImportError("需要安装 tomli 库以支持 TOML 格式（Python < 3.11）")
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"pyproject.toml 不存在: {file_path}")
+
+        with open(file_path, "rb") as f:
+            data = tomllib.load(f)
+
+        # 提取 tool.pysec 配置节
+        if "tool" not in data or "pysec" not in data["tool"]:
+            raise ValueError("pyproject.toml 中未找到 [tool.pysec] 配置节")
+
+        pysec_config = data["tool"]["pysec"]
+        config = cls()
+        config._parse_config(pysec_config)
+        return config
 
     def _parse_config(self, data: Dict[str, Any]) -> None:
         """解析配置数据。
@@ -144,6 +179,8 @@ class Config:
     def find_config_file(cls, start_dir: Path) -> Optional[Path]:
         """从指定目录向上查找配置文件。
 
+        查找顺序：.pysecrc -> pyproject.toml
+
         Args:
             start_dir: 起始搜索目录
 
@@ -154,9 +191,23 @@ class Config:
 
         # 向上查找，直到根目录
         while True:
+            # 优先查找 .pysecrc
             config_path = current_dir / ".pysecrc"
             if config_path.exists():
                 return config_path
+
+            # 查找 pyproject.toml 并检查是否包含 [tool.pysec]
+            pyproject_path = current_dir / "pyproject.toml"
+            if pyproject_path.exists():
+                try:
+                    # 快速检查是否包含 [tool.pysec] 配置节
+                    if tomllib is not None:
+                        with open(pyproject_path, "rb") as f:
+                            data = tomllib.load(f)
+                            if "tool" in data and "pysec" in data["tool"]:
+                                return pyproject_path
+                except Exception:
+                    pass  # 忽略解析错误，继续查找
 
             # 检查是否到达根目录
             parent = current_dir.parent
