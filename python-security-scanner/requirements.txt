@@ -1,7 +1,9 @@
 # PySecScanner 依赖文件
 
-# 核心依赖（无外部依赖，仅使用Python标准库）
+# 核心依赖
 # Python >= 3.8
+pyyaml>=6.0.0
+tomli>=2.0.0; python_version < '3.11'
 
 # 可选依赖（用于增强功能）
 # colorama>=0.4.6        # 终端彩色输出（可选）

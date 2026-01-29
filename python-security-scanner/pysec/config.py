@@ -1,12 +1,22 @@
 """配置文件加载和管理模块。
 
 此模块负责加载和解析 PySecScanner 的配置文件，
-支持 .pysecrc (YAML) 格式。
+支持 .pysecrc (YAML/TOML) 格式。
 """
 
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+import sys
 import yaml
+
+# Python 3.11+ 使用内置的 tomllib，之前版本使用 tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        tomllib = None  # type: ignore
 
 
 class Config:
@@ -51,6 +61,55 @@ class Config:
         config = cls()
         config._parse_config(data)
         return config
+
+    @classmethod
+    def load_from_toml(cls, file_path: Path) -> "Config":
+        """从 TOML 文件加载配置。
+
+        Args:
+            file_path: TOML 配置文件路径
+
+        Returns:
+            Config: 配置对象
+
+        Raises:
+            FileNotFoundError: 配置文件不存在
+            ImportError: tomli/tomllib 库未安装
+            tomllib.TOMLDecodeError: TOML 文件格式错误
+        """
+        if tomllib is None:
+            raise ImportError("需要安装 tomli 库以支持 TOML 格式（Python < 3.11）")
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"配置文件不存在: {file_path}")
+
+        with open(file_path, "rb") as f:
+            data = tomllib.load(f)
+
+        config = cls()
+        config._parse_config(data)
+        return config
+
+    @classmethod
+    def load_from_file(cls, file_path: Path) -> "Config":
+        """自动检测文件格式并加载配置。
+
+        Args:
+            file_path: 配置文件路径
+
+        Returns:
+            Config: 配置对象
+
+        Raises:
+            ValueError: 不支持的文件格式
+        """
+        suffix = file_path.suffix.lower()
+        if suffix in [".yaml", ".yml"] or file_path.name == ".pysecrc":
+            return cls.load_from_yaml(file_path)
+        elif suffix == ".toml":
+            return cls.load_from_toml(file_path)
+        else:
+            raise ValueError(f"不支持的配置文件格式: {suffix}")
 
     def _parse_config(self, data: Dict[str, Any]) -> None:
         """解析配置数据。
