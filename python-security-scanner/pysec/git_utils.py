@@ -152,3 +152,106 @@ class GitHelper:
             如果有修改的 Python 文件返回 True，否则返回 False
         """
         return len(self.get_changed_files()) > 0
+
+    def is_valid_ref(self, ref: str) -> bool:
+        """
+        检查提交引用是否有效
+
+        Args:
+            ref: Git 引用（提交哈希、分支名、标签名等）
+
+        Returns:
+            如果引用有效返回 True，否则返回 False
+        """
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", ref],
+                cwd=str(self.repo_path),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return result.returncode == 0
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False
+
+    def get_files_changed_since(self, since_ref: str) -> List[str]:
+        """
+        获取自指定提交/分支以来修改的 Python 文件
+
+        Args:
+            since_ref: 基准提交/分支（如 HEAD~5, main, abc123）
+
+        Returns:
+            修改的 Python 文件路径列表（绝对路径）
+        """
+        if not self.is_git_repo():
+            return []
+
+        repo_root = self.get_repo_root()
+        if not repo_root:
+            return []
+
+        if not self.is_valid_ref(since_ref):
+            return []
+
+        changed_files = set()
+
+        # 获取自指定提交以来的所有修改文件
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", since_ref],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        changed_files.add(line.strip())
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+        # 也包括暂存区的修改
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", "--cached", since_ref],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        changed_files.add(line.strip())
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+        # 获取未追踪的新文件
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--others", "--exclude-standard"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        changed_files.add(line.strip())
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
+        # 过滤出 Python 文件并转换为绝对路径
+        python_files = []
+        for file_path in changed_files:
+            if file_path.endswith(".py"):
+                abs_path = os.path.join(repo_root, file_path)
+                if os.path.isfile(abs_path):
+                    python_files.append(abs_path)
+
+        return sorted(python_files)
+

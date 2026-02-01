@@ -213,18 +213,55 @@ class Scanner:
     """
     综合扫描器
 
-    整合文件扫描和AST解析功能
+    整合文件扫描和AST解析功能，支持缓存
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, use_cache: bool = True, **kwargs):
         """
         初始化扫描器
 
         Args:
+            use_cache: 是否启用 AST 缓存
             **kwargs: 传递给FileScanner的参数
         """
         self.file_scanner = FileScanner(**kwargs)
         self.ast_parser = ASTParser()
+        self.use_cache = use_cache
+        self._cache = None
+
+        if use_cache:
+            try:
+                from .cache import ASTCache
+                self._cache = ASTCache()
+            except ImportError:
+                self._cache = None
+
+    def _parse_file_with_cache(
+        self, file_path: str
+    ) -> Tuple[Optional[ast.AST], str, Optional[str]]:
+        """
+        解析文件，优先使用缓存
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            (AST树, 源代码, 错误信息)
+        """
+        # 尝试从缓存获取
+        if self._cache and self.use_cache:
+            cached = self._cache.get(file_path)
+            if cached:
+                return cached[0], cached[1], None
+
+        # 缓存未命中，正常解析
+        tree, source, error = self.ast_parser.parse_file(file_path)
+
+        # 如果解析成功，存入缓存
+        if tree is not None and self._cache and self.use_cache:
+            self._cache.set(file_path, tree, source)
+
+        return tree, source, error
 
     def scan_target(
         self, target: str
@@ -244,13 +281,13 @@ class Scanner:
             # 单个文件
             file_path = self.file_scanner.scan_file(target)
             if file_path:
-                tree, source, error = self.ast_parser.parse_file(file_path)
+                tree, source, error = self._parse_file_with_cache(file_path)
                 yield file_path, tree, source, error
 
         elif os.path.isdir(target):
             # 目录
             for file_path in self.file_scanner.scan_directory(target):
-                tree, source, error = self.ast_parser.parse_file(file_path)
+                tree, source, error = self._parse_file_with_cache(file_path)
                 yield file_path, tree, source, error
 
         else:
@@ -273,7 +310,19 @@ class Scanner:
             if os.path.isfile(abs_path):
                 validated_path = self.file_scanner.scan_file(abs_path)
                 if validated_path:
-                    tree, source, error = self.ast_parser.parse_file(validated_path)
+                    tree, source, error = self._parse_file_with_cache(validated_path)
                     yield validated_path, tree, source, error
             else:
                 yield abs_path, None, "", f"文件不存在: {abs_path}"
+
+    def clear_cache(self):
+        """清除 AST 缓存"""
+        if self._cache:
+            self._cache.clear()
+
+    def get_cache_stats(self) -> dict:
+        """获取缓存统计信息"""
+        if self._cache:
+            return self._cache.get_stats()
+        return {"enabled": False}
+

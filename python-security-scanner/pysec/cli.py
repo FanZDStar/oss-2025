@@ -29,6 +29,8 @@ def create_parser() -> argparse.ArgumentParser:
   pysec scan ./src -f json                  # JSON格式输出
   pysec scan ./src --exclude tests,docs     # 排除目录
   pysec scan . --changed-only               # 仅扫描Git修改的文件
+  pysec scan . --since HEAD~5               # 扫描最近5次提交修改的文件
+  pysec scan . --since main                 # 扫描结main分支不同的文件
   pysec rules                               # 列出所有规则
   pysec rules --verbose                     # 显示规则详情
         """,
@@ -68,6 +70,17 @@ def create_parser() -> argparse.ArgumentParser:
         "--changed-only",
         action="store_true",
         help="仅扫描自上次提交以来修改的文件（需在Git仓库中使用）",
+    )
+    scan_parser.add_argument(
+        "--since",
+        type=str,
+        default=None,
+        help="扫描自指定提交/分支以来修改的文件（如: HEAD~5, main, abc123）",
+    )
+    scan_parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="禁用 AST 缓存，强制重新解析所有文件",
     )
 
     # rules 命令
@@ -149,6 +162,8 @@ def cmd_scan(args):
         print(f"启用规则: {len(scanner.get_rules())} 个")
         if hasattr(args, 'changed_only') and args.changed_only:
             print("扫描模式: 增量扫描（仅扫描Git修改的文件）")
+        elif hasattr(args, 'since') and args.since:
+            print(f"扫描模式: 增量扫描（自 {args.since} 以来修改的文件）")
         print("-" * 50)
 
     # 执行扫描
@@ -156,7 +171,20 @@ def cmd_scan(args):
         print("开始扫描...")
 
     # 根据参数选择扫描模式
-    if hasattr(args, 'changed_only') and args.changed_only:
+    if hasattr(args, 'since') and args.since:
+        # 使用 --since 参数的增量扫描
+        result = scanner.scan_since(str(target), args.since)
+        # 检查是否有错误
+        if result.errors:
+            for error in result.errors:
+                if "Git 仓库" in error or "Git 引用" in error:
+                    print(f"错误: {error}", file=sys.stderr)
+                    return 1
+        if result.files_scanned == 0 and not result.errors:
+            if not args.quiet:
+                print(f"没有检测到自 {args.since} 以来修改的 Python 文件")
+            return 0
+    elif hasattr(args, 'changed_only') and args.changed_only:
         result = scanner.scan_changed(str(target))
         # 检查是否有错误（如不是Git仓库）
         if result.errors and any("Git 仓库" in e for e in result.errors):

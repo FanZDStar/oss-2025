@@ -269,6 +269,72 @@ class SecurityScanner:
 
         return result
 
+    def scan_since(self, target: str, since_ref: str) -> ScanResult:
+        """
+        扫描自指定提交/分支以来修改的 Python 文件
+
+        Args:
+            target: Git 仓库路径
+            since_ref: 基准提交/分支（如 HEAD~5, main, abc123）
+
+        Returns:
+            扫描结果
+        """
+        from .git_utils import GitHelper
+
+        start_time = time.time()
+        result = ScanResult(target=target, scan_time=datetime.now())
+
+        git_helper = GitHelper(target)
+
+        if not git_helper.is_git_repo():
+            result.add_error("当前目录不是 Git 仓库")
+            result.duration = time.time() - start_time
+            return result
+
+        if not git_helper.is_valid_ref(since_ref):
+            result.add_error(f"无效的 Git 引用: {since_ref}")
+            result.duration = time.time() - start_time
+            return result
+
+        changed_files = git_helper.get_files_changed_since(since_ref)
+
+        if not changed_files:
+            result.duration = time.time() - start_time
+            return result
+
+        files_scanned = 0
+
+        for file_path, ast_tree, source_code, error in self.scanner.scan_files(changed_files):
+            files_scanned += 1
+
+            if error:
+                result.add_error(f"{file_path}: {error}")
+                if self.config.verbose:
+                    print(f"[错误] {file_path}: {error}")
+                continue
+
+            if ast_tree is None:
+                continue
+
+            # 执行规则检测
+            vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
+
+            for vuln in vulnerabilities:
+                result.add_vulnerability(vuln)
+
+            if self.config.verbose:
+                if vulnerabilities:
+                    print(f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题")
+                else:
+                    print(f"[扫描] {file_path}: 通过")
+
+        result.files_scanned = files_scanned
+        result.duration = time.time() - start_time
+
+        return result
+
     def get_rules(self) -> List[dict]:
         """获取所有已加载的规则"""
         return self.engine.get_loaded_rules()
+
