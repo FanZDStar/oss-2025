@@ -28,6 +28,7 @@ def create_parser() -> argparse.ArgumentParser:
   pysec scan ./src -o report.md -f markdown # 生成Markdown报告
   pysec scan ./src -f json                  # JSON格式输出
   pysec scan ./src --exclude tests,docs     # 排除目录
+  pysec scan . --changed-only               # 仅扫描Git修改的文件
   pysec rules                               # 列出所有规则
   pysec rules --verbose                     # 显示规则详情
         """,
@@ -63,6 +64,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
     scan_parser.add_argument("-v", "--verbose", action="store_true", help="显示详细扫描过程")
     scan_parser.add_argument("-q", "--quiet", action="store_true", help="静默模式，仅输出报告")
+    scan_parser.add_argument(
+        "--changed-only",
+        action="store_true",
+        help="仅扫描自上次提交以来修改的文件（需在Git仓库中使用）",
+    )
 
     # rules 命令
     rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
@@ -141,13 +147,27 @@ def cmd_scan(args):
         print("=" * 50)
         print(f"扫描目标: {target.absolute()}")
         print(f"启用规则: {len(scanner.get_rules())} 个")
+        if hasattr(args, 'changed_only') and args.changed_only:
+            print("扫描模式: 增量扫描（仅扫描Git修改的文件）")
         print("-" * 50)
 
     # 执行扫描
     if args.verbose and not args.quiet:
         print("开始扫描...")
 
-    result = scanner.scan(str(target))
+    # 根据参数选择扫描模式
+    if hasattr(args, 'changed_only') and args.changed_only:
+        result = scanner.scan_changed(str(target))
+        # 检查是否有错误（如不是Git仓库）
+        if result.errors and any("Git 仓库" in e for e in result.errors):
+            print(f"错误: {result.errors[0]}", file=sys.stderr)
+            return 1
+        if result.files_scanned == 0 and not result.errors:
+            if not args.quiet:
+                print("没有检测到修改的 Python 文件")
+            return 0
+    else:
+        result = scanner.scan(str(target))
 
     if not args.quiet:
         print(f"扫描完成! 耗时: {result.duration:.2f} 秒")

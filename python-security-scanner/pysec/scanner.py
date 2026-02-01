@@ -255,3 +255,25 @@ class Scanner:
 
         else:
             yield target, None, "", f"目标不存在: {target}"
+
+    def scan_files(
+        self, file_paths: List[str]
+    ) -> Generator[Tuple[str, Optional[ast.AST], str, Optional[str]], None, None]:
+        """
+        扫描指定的文件列表
+
+        Args:
+            file_paths: 文件路径列表
+
+        Yields:
+            (文件路径, AST树, 源代码, 错误信息)
+        """
+        for file_path in file_paths:
+            abs_path = os.path.abspath(file_path)
+            if os.path.isfile(abs_path):
+                validated_path = self.file_scanner.scan_file(abs_path)
+                if validated_path:
+                    tree, source, error = self.ast_parser.parse_file(validated_path)
+                    yield validated_path, tree, source, error
+            else:
+                yield abs_path, None, "", f"文件不存在: {abs_path}"
