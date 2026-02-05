@@ -138,3 +138,31 @@ class IgnoreChecker:
         
         # 3. 如果以上都不是，则不忽略
         return False
+
+# === 自测试代码（直接运行此文件时执行） ===
+if __name__ == "__main__":
+    print("=== 忽略检查器自测试 ===")
+    
+    # 测试1：单行忽略
+    code1 = 'x = 1  # pysec: ignore'
+    checker1 = IgnoreChecker(code1)
+    test1 = checker1.should_ignore_line(code1)
+    print(f"测试1 - 单行忽略: {test1} (期望: True)")
+    
+    # 测试2：指定规则忽略
+    code2 = 'y = 2  # pysec: ignore[SQL001]'
+    checker2 = IgnoreChecker(code2)
+    test2a = checker2.should_ignore_line(code2, "SQL001")
+    test2b = checker2.should_ignore_line(code2, "SEC001")
+    print(f"测试2 - 忽略 SQL001: {test2a} (期望: True)")
+    print(f"测试2 - 不忽略 SEC001: {test2b} (期望: False)")
+    
+    # 测试3：文件分析
+    code3 = '''# pysec: ignore-file
+# 这是一个测试文件
+password = "secret"'''
+    checker3 = IgnoreChecker(code3)
+    info = checker3.analyze_file_ignore()
+    print(f"测试3 - 文件级别忽略: {info['ignore_file']} (期望: True)")
+    
+    print("自测试完成！如果以上结果符合期望，说明代码逻辑正确。")

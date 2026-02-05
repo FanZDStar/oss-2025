@@ -12,6 +12,7 @@ from .models import Vulnerability, ScanResult, ScanConfig
 from .scanner import Scanner
 from .rules import RULE_REGISTRY
 from .rules.base import BaseRule
+from .ignore_checker import IgnoreChecker  # 导入我们创建的忽略检查器
 
 
 class RuleEngine:
@@ -118,6 +119,20 @@ class SecurityScanner:
         self.scanner = Scanner()
         self.engine = RuleEngine(self.config)
 
+    def _should_ignore_vulnerability(self, vulnerability, source_code: str) -> bool:
+        """
+        检查漏洞是否应被忽略（辅助函数）
+        
+        Args:
+            vulnerability: 漏洞对象
+            source_code: 源代码
+        
+        Returns:
+            bool: True表示应忽略，False表示应报告
+        """
+        checker = IgnoreChecker(source_code)
+        return checker.should_ignore_vulnerability(vulnerability)
+
     def scan(self, target: str) -> ScanResult:
         """
         扫描目标（文件或目录）
@@ -145,10 +160,21 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
+            # 检查文件级别忽略
+            checker = IgnoreChecker(source_code)
+            file_ignore_info = checker.analyze_file_ignore()
+            if file_ignore_info['ignore_file']:
+                if self.config.verbose:
+                    print(f"[忽略] {file_path}: 整个文件被忽略")
+                continue
+
             # 执行规则检测
             vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
 
             for vuln in vulnerabilities:
+                # 检查漏洞是否应被忽略
+                if self._should_ignore_vulnerability(vuln, source_code):
+                    continue
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
@@ -200,9 +226,21 @@ class SecurityScanner:
         start_time = time.time()
         result = ScanResult(target=filename, scan_time=datetime.now())
 
+        # 检查文件级别忽略
+        checker = IgnoreChecker(source_code)
+        file_ignore_info = checker.analyze_file_ignore()
+        if file_ignore_info['ignore_file']:
+            if self.config.verbose:
+                print(f"[忽略] {filename}: 整个文件被忽略")
+            result.duration = time.time() - start_time
+            return result
+
         vulnerabilities = self.engine.scan_source(source_code, filename)
 
         for vuln in vulnerabilities:
+            # 检查漏洞是否应被忽略
+            if self._should_ignore_vulnerability(vuln, source_code):
+                continue
             result.add_vulnerability(vuln)
 
         result.files_scanned = 1
@@ -252,10 +290,21 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
+            # 检查文件级别忽略
+            checker = IgnoreChecker(source_code)
+            file_ignore_info = checker.analyze_file_ignore()
+            if file_ignore_info['ignore_file']:
+                if self.config.verbose:
+                    print(f"[忽略] {file_path}: 整个文件被忽略")
+                continue
+
             # 执行规则检测
             vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
 
             for vuln in vulnerabilities:
+                # 检查漏洞是否应被忽略
+                if self._should_ignore_vulnerability(vuln, source_code):
+                    continue
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
@@ -317,10 +366,21 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
+            # 检查文件级别忽略
+            checker = IgnoreChecker(source_code)
+            file_ignore_info = checker.analyze_file_ignore()
+            if file_ignore_info['ignore_file']:
+                if self.config.verbose:
+                    print(f"[忽略] {file_path}: 整个文件被忽略")
+                continue
+
             # 执行规则检测
             vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
 
             for vuln in vulnerabilities:
+                # 检查漏洞是否应被忽略
+                if self._should_ignore_vulnerability(vuln, source_code):
+                    continue
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
@@ -337,4 +397,3 @@ class SecurityScanner:
     def get_rules(self) -> List[dict]:
         """获取所有已加载的规则"""
         return self.engine.get_loaded_rules()
-
