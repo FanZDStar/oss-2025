@@ -1,0 +1,104 @@
+{
+  "target": "tests\\samples\\test_ignore_comments.py",
+  "scan_time": "2026-02-05T11:14:55.322140",
+  "duration": 0.0,
+  "files_scanned": 1,
+  "summary": {
+    "total": 8,
+    "critical": 5,
+    "high": 3,
+    "medium": 0,
+    "low": 0
+  },
+  "vulnerabilities": [
+    {
+      "rule_id": "SQL001",
+      "rule_name": "SQL注入风险",
+      "severity": "high",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 27,
+      "column": 9,
+      "code_snippet": "query1 = \"SELECT * FROM users WHERE id = '%s'\" % user_id",
+      "description": "使用 % 格式化拼接SQL语句，存在SQL注入风险",
+      "suggestion": "使用参数化查询（如 cursor.execute(sql, params)）代替字符串拼接，或使用ORM框架进行数据库操作"
+    },
+    {
+      "rule_id": "CMD001",
+      "rule_name": "命令注入风险",
+      "severity": "critical",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 80,
+      "column": 11,
+      "code_snippet": "cmd1 = os.system(\"ls\")",
+      "description": "调用危险函数 os.system(): 直接执行shell命令",
+      "suggestion": "避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入"
+    },
+    {
+      "rule_id": "CMD001",
+      "rule_name": "命令注入风险",
+      "severity": "critical",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 89,
+      "column": 11,
+      "code_snippet": "cmd4 = os.system(\"pwd\")",
+      "description": "调用危险函数 os.system(): 直接执行shell命令",
+      "suggestion": "避免执行外部命令；如必须执行，使用参数列表形式并严格校验输入"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 15,
+      "column": 0,
+      "code_snippet": "password1 = \"hardcoded_password_123\"",
+      "description": "变量 'password1' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "SEC001",
+      "rule_name": "硬编码敏感信息",
+      "severity": "high",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 39,
+      "column": 0,
+      "code_snippet": "another_secret = \"yet_another_secret\"",
+      "description": "变量 'another_secret' 包含硬编码的敏感信息，可能导致凭据泄露",
+      "suggestion": "使用环境变量存储敏感信息，如 os.environ.get('SECRET_KEY')；或使用配置文件（不提交到版本控制）；或使用密钥管理服务"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 45,
+      "column": 0,
+      "code_snippet": "eval(\"1 + 1\")",
+      "description": "调用危险函数 eval(): 执行任意Python表达式，可导致远程代码执行",
+      "suggestion": "避免使用eval；如需解析字面量，使用ast.literal_eval"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 57,
+      "column": 0,
+      "code_snippet": "eval(\"2 + 2\")",
+      "description": "调用危险函数 eval(): 执行任意Python表达式，可导致远程代码执行",
+      "suggestion": "避免使用eval；如需解析字面量，使用ast.literal_eval"
+    },
+    {
+      "rule_id": "DNG001",
+      "rule_name": "危险函数调用",
+      "severity": "critical",
+      "file_path": "D:\\EduLibrary\\OurEDA\\oss-2025\\python-security-scanner\\tests\\samples\\test_ignore_comments.py",
+      "line_number": 73,
+      "column": 18,
+      "code_snippet": "dangerous_func4 = eval(\"back_to_normal\")",
+      "description": "调用危险函数 eval(): 执行任意Python表达式，可导致远程代码执行",
+      "suggestion": "避免使用eval；如需解析字面量，使用ast.literal_eval"
+    }
+  ],
+  "errors": []
+}

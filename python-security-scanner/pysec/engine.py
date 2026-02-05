@@ -12,6 +12,7 @@ from .models import Vulnerability, ScanResult, ScanConfig
 from .scanner import Scanner
 from .rules import RULE_REGISTRY
 from .rules.base import BaseRule
+from .ignore import IgnoreCommentParser
 
 
 class RuleEngine:
@@ -66,12 +67,20 @@ class RuleEngine:
             发现的漏洞列表
         """
         vulnerabilities = []
+        
+        # 解析忽略注释
+        ignore_parser = IgnoreCommentParser(source_code)
 
         for rule in self.rules:
             try:
                 results = rule.check(ast_tree, file_path, source_code)
                 if results:
-                    vulnerabilities.extend(results)
+                    # 过滤被忽略的漏洞
+                    for vuln in results:
+                        if not ignore_parser.should_ignore(vuln.line_number, vuln.rule_id):
+                            vulnerabilities.append(vuln)
+                        elif self.config.verbose:
+                            print(f"[忽略] {file_path}:{vuln.line_number} {vuln.rule_id} (注释忽略)")
             except Exception as e:
                 if self.config.verbose:
                     print(f"规则 {rule.rule_id} 执行出错: {e}")
