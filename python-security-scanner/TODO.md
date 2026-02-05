@@ -76,7 +76,7 @@ pysec scan . --since main
 **优先级:** 高  
 **预计工作量:** 2 小时
 
-- [ ] 支持行内忽略注释 `# pysec: ignore`
+- [x] 支持行内忽略注释 `# pysec: ignore`
 - [ ] 支持指定规则忽略 `# pysec: ignore[SQL001]`
 - [ ] 支持代码块忽略 `# pysec: disable` ... `# pysec: enable`
 - [ ] 支持文件级别忽略 `# pysec: ignore-file`

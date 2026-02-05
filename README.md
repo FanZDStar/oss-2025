@@ -190,7 +190,7 @@ class MyCustomRule(BaseRule):
 
 ---
 
-**PySecScanner** - 让 Python 代码更安全 🛡️
+**PySecScanner** - 让 Python 代码更安全
 
 ## 忽略规则
 
