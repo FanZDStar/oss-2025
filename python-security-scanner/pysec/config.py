@@ -35,6 +35,10 @@ class Config:
         self.output_format: str = "markdown"
         self.output_color: bool = True
         self.severity_overrides: Dict[str, str] = {}  # 规则严重程度覆盖配置
+        # 动态严重程度调整配置
+        self.dynamic_severity: bool = False  # 是否启用动态调整
+        self.upgrade_for_sensitive: bool = True  # 敏感上下文提升严重程度
+        self.downgrade_for_tests: bool = True  # 测试代码降低严重程度
 
     @classmethod
     def load_from_yaml(cls, file_path: Path) -> "Config":
@@ -172,6 +176,12 @@ class Config:
             # 解析严重程度覆盖配置
             if "overrides" in severity_config:
                 self.severity_overrides = severity_config.get("overrides", {})
+            # 解析动态严重程度调整配置
+            if "dynamic" in severity_config:
+                dynamic_config = severity_config["dynamic"]
+                self.dynamic_severity = dynamic_config.get("enabled", False)
+                self.upgrade_for_sensitive = dynamic_config.get("upgrade_for_sensitive", True)
+                self.downgrade_for_tests = dynamic_config.get("downgrade_for_tests", True)
 
         # 解析输出配置
         if "output" in data:
@@ -239,6 +249,11 @@ class Config:
             "severity": {
                 "minimum": self.minimum_severity,
                 "overrides": self.severity_overrides,
+                "dynamic": {
+                    "enabled": self.dynamic_severity,
+                    "upgrade_for_sensitive": self.upgrade_for_sensitive,
+                    "downgrade_for_tests": self.downgrade_for_tests,
+                },
             },
             "output": {
                 "format": self.output_format,

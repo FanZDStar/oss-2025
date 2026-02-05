@@ -13,6 +13,7 @@ from .scanner import Scanner
 from .rules import RULE_REGISTRY
 from .rules.base import BaseRule
 from .ignore_handler import IgnoreHandler
+from .severity_adjuster import SeverityAdjuster, ContextInfo, create_context_from_vulnerability
 
 
 class RuleEngine:
@@ -32,6 +33,12 @@ class RuleEngine:
         self.config = config or ScanConfig()
         self.rules: List[BaseRule] = []
         self._load_rules()
+        # 初始化动态严重程度调整器
+        self.severity_adjuster = SeverityAdjuster(
+            enabled=self.config.dynamic_severity,
+            upgrade_for_sensitive=self.config.upgrade_for_sensitive,
+            downgrade_for_tests=self.config.downgrade_for_tests,
+        )
 
     def _load_rules(self):
         """加载所有检测规则"""
@@ -74,11 +81,17 @@ class RuleEngine:
             try:
                 results = rule.check(ast_tree, file_path, source_code)
                 if results:
-                    # 应用严重程度覆盖
                     for vuln in results:
+                        # 应用严重程度覆盖
                         vuln.severity = self.config.get_effective_severity(
                             vuln.rule_id, vuln.severity
                         )
+                        # 应用动态严重程度调整
+                        if self.config.dynamic_severity:
+                            context = create_context_from_vulnerability(vuln, source_code)
+                            vuln.severity = self.severity_adjuster.adjust_severity(
+                                vuln.severity, context
+                            )
                     vulnerabilities.extend(results)
             except Exception as e:
                 if self.config.verbose:

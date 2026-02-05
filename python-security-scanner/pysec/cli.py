@@ -143,6 +143,10 @@ def cmd_scan(args):
             scan_config.disabled_rules = loaded_config.rules_disabled
         if loaded_config.severity_overrides:
             scan_config.severity_overrides = loaded_config.severity_overrides
+        # 加载动态严重程度调整配置
+        scan_config.dynamic_severity = loaded_config.dynamic_severity
+        scan_config.upgrade_for_sensitive = loaded_config.upgrade_for_sensitive
+        scan_config.downgrade_for_tests = loaded_config.downgrade_for_tests
 
     # 命令行参数覆盖配置文件
     if args.exclude:

@@ -119,6 +119,10 @@ class ScanConfig:
     verbose: bool = False  # 详细输出
     min_severity: Optional[str] = None  # 最低报告严重程度: critical/high/medium/low
     severity_overrides: Optional[dict] = None  # 规则严重程度覆盖配置，如 {"SQL001": "critical"}
+    # 动态严重程度调整配置
+    dynamic_severity: bool = False  # 是否启用基于上下文的动态严重程度调整
+    upgrade_for_sensitive: bool = True  # 是否为敏感上下文提升严重程度
+    downgrade_for_tests: bool = True  # 是否为测试代码降低严重程度
 
     def should_scan_rule(self, rule_id: str) -> bool:
         """判断是否应该执行某个规则"""
