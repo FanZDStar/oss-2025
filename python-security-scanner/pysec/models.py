@@ -46,6 +46,7 @@ class ScanResult:
     files_scanned: int = 0  # 扫描文件数
     vulnerabilities: List[Vulnerability] = field(default_factory=list)  # 发现的漏洞
     errors: List[str] = field(default_factory=list)  # 扫描过程中的错误
+    ignored_count: int = 0  # 被忽略的漏洞数量（通过 pysec: ignore 注释）
 
     @property
     def summary(self) -> dict:
@@ -56,6 +57,7 @@ class ScanResult:
             "high": len([v for v in self.vulnerabilities if v.severity == "high"]),
             "medium": len([v for v in self.vulnerabilities if v.severity == "medium"]),
             "low": len([v for v in self.vulnerabilities if v.severity == "low"]),
+            "ignored": self.ignored_count,
         }
 
     def add_vulnerability(self, vuln: Vulnerability):

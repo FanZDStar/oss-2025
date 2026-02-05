@@ -6,13 +6,13 @@
 
 import time
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from .models import Vulnerability, ScanResult, ScanConfig
 from .scanner import Scanner
 from .rules import RULE_REGISTRY
 from .rules.base import BaseRule
-from .ignore import IgnoreCommentParser
+from .ignore_handler import IgnoreHandler
 
 
 class RuleEngine:
@@ -54,7 +54,9 @@ class RuleEngine:
             for rule in self.rules
         ]
 
-    def scan_ast(self, ast_tree, file_path: str, source_code: str) -> List[Vulnerability]:
+    def scan_ast(
+        self, ast_tree, file_path: str, source_code: str
+    ) -> Tuple[List[Vulnerability], int]:
         """
         对单个文件的AST执行所有规则检测
 
@@ -64,30 +66,29 @@ class RuleEngine:
             source_code: 源代码
 
         Returns:
-            发现的漏洞列表
+            (发现的漏洞列表, 被忽略的漏洞数量)
         """
         vulnerabilities = []
-        
-        # 解析忽略注释
-        ignore_parser = IgnoreCommentParser(source_code)
 
         for rule in self.rules:
             try:
                 results = rule.check(ast_tree, file_path, source_code)
                 if results:
-                    # 过滤被忽略的漏洞
-                    for vuln in results:
-                        if not ignore_parser.should_ignore(vuln.line_number, vuln.rule_id):
-                            vulnerabilities.append(vuln)
-                        elif self.config.verbose:
-                            print(f"[忽略] {file_path}:{vuln.line_number} {vuln.rule_id} (注释忽略)")
+                    vulnerabilities.extend(results)
             except Exception as e:
                 if self.config.verbose:
                     print(f"规则 {rule.rule_id} 执行出错: {e}")
 
-        return vulnerabilities
+        # 过滤被忽略的漏洞
+        filtered_vulns, ignored_count = IgnoreHandler.filter_vulnerabilities(
+            vulnerabilities, source_code, file_path
+        )
 
-    def scan_source(self, source_code: str, filename: str = "<string>") -> List[Vulnerability]:
+        return filtered_vulns, ignored_count
+
+    def scan_source(
+        self, source_code: str, filename: str = "<string>"
+    ) -> Tuple[List[Vulnerability], int]:
         """
         扫描源代码字符串
 
@@ -96,7 +97,7 @@ class RuleEngine:
             filename: 虚拟文件名
 
         Returns:
-            发现的漏洞列表
+            (发现的漏洞列表, 被忽略的漏洞数量)
         """
         import ast
 
@@ -106,7 +107,7 @@ class RuleEngine:
         except SyntaxError as e:
             if self.config.verbose:
                 print(f"解析错误: {e}")
-            return []
+            return [], 0
 
 
 class SecurityScanner:
@@ -141,6 +142,7 @@ class SecurityScanner:
         result = ScanResult(target=target, scan_time=datetime.now())
 
         files_scanned = 0
+        total_ignored = 0
 
         for file_path, ast_tree, source_code, error in self.scanner.scan_target(target):
             files_scanned += 1
@@ -154,19 +156,27 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
-            # 执行规则检测
-            vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
+            # 执行规则检测（包含忽略过滤）
+            vulnerabilities, ignored_count = self.engine.scan_ast(ast_tree, file_path, source_code)
+            total_ignored += ignored_count
 
             for vuln in vulnerabilities:
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
                 if vulnerabilities:
-                    print(f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题")
+                    msg = f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
                 else:
-                    print(f"[扫描] {file_path}: 通过")
+                    msg = f"[扫描] {file_path}: 通过"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
 
         result.files_scanned = files_scanned
+        result.ignored_count = total_ignored
         result.duration = time.time() - start_time
 
         return result
@@ -209,12 +219,13 @@ class SecurityScanner:
         start_time = time.time()
         result = ScanResult(target=filename, scan_time=datetime.now())
 
-        vulnerabilities = self.engine.scan_source(source_code, filename)
+        vulnerabilities, ignored_count = self.engine.scan_source(source_code, filename)
 
         for vuln in vulnerabilities:
             result.add_vulnerability(vuln)
 
         result.files_scanned = 1
+        result.ignored_count = ignored_count
         result.duration = time.time() - start_time
 
         return result
@@ -248,6 +259,7 @@ class SecurityScanner:
             return result
 
         files_scanned = 0
+        total_ignored = 0
 
         for file_path, ast_tree, source_code, error in self.scanner.scan_files(changed_files):
             files_scanned += 1
@@ -261,19 +273,27 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
-            # 执行规则检测
-            vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
+            # 执行规则检测（包含忽略过滤）
+            vulnerabilities, ignored_count = self.engine.scan_ast(ast_tree, file_path, source_code)
+            total_ignored += ignored_count
 
             for vuln in vulnerabilities:
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
                 if vulnerabilities:
-                    print(f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题")
+                    msg = f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
                 else:
-                    print(f"[扫描] {file_path}: 通过")
+                    msg = f"[扫描] {file_path}: 通过"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
 
         result.files_scanned = files_scanned
+        result.ignored_count = total_ignored
         result.duration = time.time() - start_time
 
         return result
@@ -313,6 +333,7 @@ class SecurityScanner:
             return result
 
         files_scanned = 0
+        total_ignored = 0
 
         for file_path, ast_tree, source_code, error in self.scanner.scan_files(changed_files):
             files_scanned += 1
@@ -326,24 +347,26 @@ class SecurityScanner:
             if ast_tree is None:
                 continue
 
-            # 执行规则检测
-            vulnerabilities = self.engine.scan_ast(ast_tree, file_path, source_code)
+            # 执行规则检测（包含忽略过滤）
+            vulnerabilities, ignored_count = self.engine.scan_ast(ast_tree, file_path, source_code)
+            total_ignored += ignored_count
 
             for vuln in vulnerabilities:
                 result.add_vulnerability(vuln)
 
             if self.config.verbose:
                 if vulnerabilities:
-                    print(f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题")
+                    msg = f"[扫描] {file_path}: 发现 {len(vulnerabilities)} 个问题"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
                 else:
-                    print(f"[扫描] {file_path}: 通过")
+                    msg = f"[扫描] {file_path}: 通过"
+                    if ignored_count > 0:
+                        msg += f" (忽略 {ignored_count} 个)"
+                    print(msg)
 
         result.files_scanned = files_scanned
-        result.duration = time.time() - start_time
-
-        return result
-
-    def get_rules(self) -> List[dict]:
+        result.ignored_count = total_ignored
         """获取所有已加载的规则"""
         return self.engine.get_loaded_rules()
-

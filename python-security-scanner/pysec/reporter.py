@@ -77,6 +77,8 @@ class TextReporter(BaseReporter):
         lines.append(f"  中危 (Medium):   {summary['medium']}")
         lines.append(f"  低危 (Low):      {summary['low']}")
         lines.append(f"  总计:            {summary['total']}")
+        if summary.get("ignored", 0) > 0:
+            lines.append(f"  已忽略:          {summary['ignored']}")
         lines.append("")
 
         # 漏洞详情
@@ -163,6 +165,8 @@ class MarkdownReporter(BaseReporter):
         lines.append(f"| {self.SEVERITY_ICONS['medium']} 中危 (Medium) | {summary['medium']} |")
         lines.append(f"| {self.SEVERITY_ICONS['low']} 低危 (Low) | {summary['low']} |")
         lines.append(f"| **总计** | **{summary['total']}** |")
+        if summary.get("ignored", 0) > 0:
+            lines.append(f"| ⏭️ 已忽略 | {summary['ignored']} |")
         lines.append("")
 
         # 漏洞详情
@@ -423,6 +427,7 @@ class HTMLReporter(BaseReporter):
                 <div>低危</div>
             </div>
         </div>
+        {f'<p style="text-align: center; color: #666;">⏭️ 已忽略 {summary["ignored"]} 个漏洞（通过 pysec: ignore 注释）</p>' if summary.get('ignored', 0) > 0 else ''}
         
         <h2>🔍 漏洞详情</h2>
         {vulns_html}
