@@ -101,7 +101,7 @@ exec(code)
 - [ ] 允许用户自定义规则严重程度
 - [ ] 配置文件中指定覆盖级别
 - [ ] 支持基于上下文的动态严重程度调整
-- [ ] 实现 `--min-severity` 过滤参数
+- [x] 实现 `--min-severity` 过滤参数
 
 ```yaml
 severity_overrides:

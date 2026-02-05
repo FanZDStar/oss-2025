@@ -179,6 +179,10 @@ class SecurityScanner:
         result.ignored_count = total_ignored
         result.duration = time.time() - start_time
 
+        # 应用严重程度过滤
+        if self.config.min_severity:
+            result.filter_by_severity(self.config.min_severity)
+
         return result
 
     def scan_file(self, file_path: str) -> ScanResult:
@@ -227,6 +231,10 @@ class SecurityScanner:
         result.files_scanned = 1
         result.ignored_count = ignored_count
         result.duration = time.time() - start_time
+
+        # 应用严重程度过滤
+        if self.config.min_severity:
+            result.filter_by_severity(self.config.min_severity)
 
         return result
 
@@ -295,6 +303,10 @@ class SecurityScanner:
         result.files_scanned = files_scanned
         result.ignored_count = total_ignored
         result.duration = time.time() - start_time
+
+        # 应用严重程度过滤
+        if self.config.min_severity:
+            result.filter_by_severity(self.config.min_severity)
 
         return result
 
@@ -368,5 +380,14 @@ class SecurityScanner:
 
         result.files_scanned = files_scanned
         result.ignored_count = total_ignored
+        result.duration = time.time() - start_time
+
+        # 应用严重程度过滤
+        if self.config.min_severity:
+            result.filter_by_severity(self.config.min_severity)
+
+        return result
+
+    def get_rules(self) -> List[dict]:
         """获取所有已加载的规则"""
         return self.engine.get_loaded_rules()

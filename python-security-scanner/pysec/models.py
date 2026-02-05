@@ -47,6 +47,7 @@ class ScanResult:
     vulnerabilities: List[Vulnerability] = field(default_factory=list)  # 发现的漏洞
     errors: List[str] = field(default_factory=list)  # 扫描过程中的错误
     ignored_count: int = 0  # 被忽略的漏洞数量（通过 pysec: ignore 注释）
+    filtered_count: int = 0  # 被严重程度过滤的漏洞数量
 
     @property
     def summary(self) -> dict:
@@ -58,6 +59,7 @@ class ScanResult:
             "medium": len([v for v in self.vulnerabilities if v.severity == "medium"]),
             "low": len([v for v in self.vulnerabilities if v.severity == "low"]),
             "ignored": self.ignored_count,
+            "filtered": self.filtered_count,
         }
 
     def add_vulnerability(self, vuln: Vulnerability):
@@ -67,6 +69,42 @@ class ScanResult:
     def add_error(self, error: str):
         """添加错误信息"""
         self.errors.append(error)
+
+    def filter_by_severity(self, min_severity: str) -> int:
+        """
+        按最低严重程度过滤漏洞
+
+        Args:
+            min_severity: 最低严重程度
+
+        Returns:
+            被过滤的漏洞数量
+        """
+        if not min_severity:
+            return 0
+
+        min_level = get_severity_value(min_severity)
+        original_count = len(self.vulnerabilities)
+
+        self.vulnerabilities = [
+            v for v in self.vulnerabilities if get_severity_value(v.severity) <= min_level
+        ]
+
+        filtered = original_count - len(self.vulnerabilities)
+        self.filtered_count += filtered
+        return filtered
+
+
+# 严重程度级别顺序（从高到低）
+SEVERITY_LEVELS = ["critical", "high", "medium", "low"]
+
+
+def get_severity_value(severity: str) -> int:
+    """获取严重程度的数值（用于比较）"""
+    try:
+        return SEVERITY_LEVELS.index(severity.lower())
+    except ValueError:
+        return len(SEVERITY_LEVELS)  # 未知级别放到最后
 
 
 @dataclass
@@ -79,6 +117,7 @@ class ScanConfig:
     max_file_size: int = 1024 * 1024  # 最大文件大小（字节）
     output_format: str = "text"  # 输出格式: text/markdown/json
     verbose: bool = False  # 详细输出
+    min_severity: Optional[str] = None  # 最低报告严重程度: critical/high/medium/low
 
     def should_scan_rule(self, rule_id: str) -> bool:
         """判断是否应该执行某个规则"""
@@ -89,3 +128,17 @@ class ScanConfig:
         if self.enabled_rules and rule_id not in self.enabled_rules:
             return False
         return True
+
+    def meets_min_severity(self, severity: str) -> bool:
+        """
+        判断漏洞严重程度是否满足最低要求
+
+        Args:
+            severity: 漏洞严重程度
+
+        Returns:
+            是否满足最低严重程度要求
+        """
+        if self.min_severity is None:
+            return True
+        return get_severity_value(severity) <= get_severity_value(self.min_severity)

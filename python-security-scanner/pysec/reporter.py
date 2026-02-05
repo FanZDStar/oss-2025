@@ -79,6 +79,8 @@ class TextReporter(BaseReporter):
         lines.append(f"  总计:            {summary['total']}")
         if summary.get("ignored", 0) > 0:
             lines.append(f"  已忽略:          {summary['ignored']}")
+        if summary.get("filtered", 0) > 0:
+            lines.append(f"  已过滤:          {summary['filtered']}")
         lines.append("")
 
         # 漏洞详情
@@ -167,6 +169,8 @@ class MarkdownReporter(BaseReporter):
         lines.append(f"| **总计** | **{summary['total']}** |")
         if summary.get("ignored", 0) > 0:
             lines.append(f"| ⏭️ 已忽略 | {summary['ignored']} |")
+        if summary.get("filtered", 0) > 0:
+            lines.append(f"| 🔽 已过滤 | {summary['filtered']} |")
         lines.append("")
 
         # 漏洞详情
@@ -428,6 +432,7 @@ class HTMLReporter(BaseReporter):
             </div>
         </div>
         {f'<p style="text-align: center; color: #666;">⏭️ 已忽略 {summary["ignored"]} 个漏洞（通过 pysec: ignore 注释）</p>' if summary.get('ignored', 0) > 0 else ''}
+        {f'<p style="text-align: center; color: #666;">🔽 已过滤 {summary["filtered"]} 个漏洞（低于最小严重程度）</p>' if summary.get('filtered', 0) > 0 else ''}
         
         <h2>🔍 漏洞详情</h2>
         {vulns_html}
