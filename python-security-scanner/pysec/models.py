@@ -118,6 +118,7 @@ class ScanConfig:
     output_format: str = "text"  # 输出格式: text/markdown/json
     verbose: bool = False  # 详细输出
     min_severity: Optional[str] = None  # 最低报告严重程度: critical/high/medium/low
+    severity_overrides: Optional[dict] = None  # 规则严重程度覆盖配置，如 {"SQL001": "critical"}
 
     def should_scan_rule(self, rule_id: str) -> bool:
         """判断是否应该执行某个规则"""
@@ -128,6 +129,23 @@ class ScanConfig:
         if self.enabled_rules and rule_id not in self.enabled_rules:
             return False
         return True
+
+    def get_effective_severity(self, rule_id: str, default_severity: str) -> str:
+        """
+        获取规则的有效严重程度（考虑覆盖配置）
+
+        Args:
+            rule_id: 规则ID
+            default_severity: 规则默认严重程度
+
+        Returns:
+            有效的严重程度
+        """
+        if self.severity_overrides and rule_id in self.severity_overrides:
+            override = self.severity_overrides[rule_id].lower()
+            if override in SEVERITY_LEVELS:
+                return override
+        return default_severity
 
     def meets_min_severity(self, severity: str) -> bool:
         """

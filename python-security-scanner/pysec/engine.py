@@ -74,6 +74,11 @@ class RuleEngine:
             try:
                 results = rule.check(ast_tree, file_path, source_code)
                 if results:
+                    # 应用严重程度覆盖
+                    for vuln in results:
+                        vuln.severity = self.config.get_effective_severity(
+                            vuln.rule_id, vuln.severity
+                        )
                     vulnerabilities.extend(results)
             except Exception as e:
                 if self.config.verbose:

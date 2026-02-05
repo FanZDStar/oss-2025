@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 from .engine import SecurityScanner
+from .models import ScanConfig
 from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules
 from .config import Config
@@ -129,30 +130,37 @@ def cmd_scan(args):
             except Exception as e:
                 print(f"警告: 加载配置文件失败: {e}", file=sys.stderr)
 
-    # 构建配置（命令行参数优先）
-    config = {}
+    # 构建 ScanConfig 配置对象
+    scan_config = ScanConfig()
 
     # 从配置文件应用设置
     if loaded_config:
         if loaded_config.exclude_dirs:
-            config["exclude_dirs"] = set(loaded_config.exclude_dirs)
+            scan_config.exclude_patterns = loaded_config.exclude_dirs
         if loaded_config.rules_enabled:
-            config["enabled_rules"] = set(loaded_config.rules_enabled)
+            scan_config.enabled_rules = loaded_config.rules_enabled
+        if loaded_config.rules_disabled:
+            scan_config.disabled_rules = loaded_config.rules_disabled
+        if loaded_config.severity_overrides:
+            scan_config.severity_overrides = loaded_config.severity_overrides
 
     # 命令行参数覆盖配置文件
     if args.exclude:
-        config["exclude_dirs"] = set(args.exclude.split(","))
+        scan_config.exclude_patterns = args.exclude.split(",")
 
     if args.rules:
-        config["enabled_rules"] = set(args.rules.split(","))
+        scan_config.enabled_rules = args.rules.split(",")
 
     if args.severity:
-        config["min_severity"] = args.severity
+        scan_config.min_severity = args.severity
     elif loaded_config and loaded_config.minimum_severity:
-        config["min_severity"] = loaded_config.minimum_severity
+        scan_config.min_severity = loaded_config.minimum_severity
+
+    if args.verbose:
+        scan_config.verbose = True
 
     # 创建扫描器
-    scanner = SecurityScanner(config)
+    scanner = SecurityScanner(scan_config)
 
     if not args.quiet:
         print("=" * 50)
@@ -160,9 +168,9 @@ def cmd_scan(args):
         print("=" * 50)
         print(f"扫描目标: {target.absolute()}")
         print(f"启用规则: {len(scanner.get_rules())} 个")
-        if hasattr(args, 'changed_only') and args.changed_only:
+        if hasattr(args, "changed_only") and args.changed_only:
             print("扫描模式: 增量扫描（仅扫描Git修改的文件）")
-        elif hasattr(args, 'since') and args.since:
+        elif hasattr(args, "since") and args.since:
             print(f"扫描模式: 增量扫描（自 {args.since} 以来修改的文件）")
         print("-" * 50)
 
@@ -171,7 +179,7 @@ def cmd_scan(args):
         print("开始扫描...")
 
     # 根据参数选择扫描模式
-    if hasattr(args, 'since') and args.since:
+    if hasattr(args, "since") and args.since:
         # 使用 --since 参数的增量扫描
         result = scanner.scan_since(str(target), args.since)
         # 检查是否有错误
@@ -184,7 +192,7 @@ def cmd_scan(args):
             if not args.quiet:
                 print(f"没有检测到自 {args.since} 以来修改的 Python 文件")
             return 0
-    elif hasattr(args, 'changed_only') and args.changed_only:
+    elif hasattr(args, "changed_only") and args.changed_only:
         result = scanner.scan_changed(str(target))
         # 检查是否有错误（如不是Git仓库）
         if result.errors and any("Git 仓库" in e for e in result.errors):

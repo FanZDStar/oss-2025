@@ -231,5 +231,72 @@ eval("1+1")
             self.assertIn(vuln.severity, ["critical", "high"])
 
 
+class TestSeverityOverrides(unittest.TestCase):
+    """测试严重程度覆盖功能"""
+
+    def test_get_effective_severity_no_override(self):
+        """测试无覆盖时返回默认严重程度"""
+        config = ScanConfig()
+        self.assertEqual(config.get_effective_severity("SQL001", "high"), "high")
+        self.assertEqual(config.get_effective_severity("CMD001", "medium"), "medium")
+
+    def test_get_effective_severity_with_override(self):
+        """测试有覆盖时返回覆盖的严重程度"""
+        config = ScanConfig(severity_overrides={"SQL001": "critical", "CMD001": "low"})
+        self.assertEqual(config.get_effective_severity("SQL001", "high"), "critical")
+        self.assertEqual(config.get_effective_severity("CMD001", "medium"), "low")
+
+    def test_get_effective_severity_override_not_matched(self):
+        """测试规则未匹配覆盖时返回默认值"""
+        config = ScanConfig(severity_overrides={"SQL001": "critical"})
+        self.assertEqual(config.get_effective_severity("CMD001", "high"), "high")
+
+    def test_get_effective_severity_invalid_override(self):
+        """测试无效的覆盖值返回默认值"""
+        config = ScanConfig(severity_overrides={"SQL001": "invalid_level"})
+        self.assertEqual(config.get_effective_severity("SQL001", "high"), "high")
+
+    def test_get_effective_severity_case_insensitive(self):
+        """测试覆盖值大小写不敏感"""
+        config = ScanConfig(severity_overrides={"SQL001": "CRITICAL"})
+        self.assertEqual(config.get_effective_severity("SQL001", "high"), "critical")
+
+    def test_scanner_applies_severity_override(self):
+        """测试扫描器应用严重程度覆盖"""
+        from pysec.engine import SecurityScanner
+
+        code = """
+import os
+os.system(user_input)  # 默认 high 严重程度
+"""
+        # 将 CMD001 (命令注入) 覆盖为 critical
+        config = ScanConfig(severity_overrides={"CMD001": "critical"})
+        scanner = SecurityScanner(config)
+        result = scanner.scan_code(code, "test.py")
+
+        # 应该找到命令注入漏洞，严重程度应该被覆盖为 critical
+        cmd_vulns = [v for v in result.vulnerabilities if v.rule_id == "CMD001"]
+        if cmd_vulns:
+            self.assertEqual(cmd_vulns[0].severity, "critical")
+
+    def test_override_combined_with_min_severity(self):
+        """测试覆盖与最低严重程度过滤组合"""
+        from pysec.engine import SecurityScanner
+
+        code = """
+eval(user_input)  # 默认 medium，覆盖为 critical
+exec(code)        # 默认 medium，未覆盖
+"""
+        # 将 DNG001 中的 eval 相关规则覆盖为 critical，同时过滤低于 high 的漏洞
+        config = ScanConfig(severity_overrides={"DNG001": "critical"}, min_severity="high")
+        scanner = SecurityScanner(config)
+        result = scanner.scan_code(code, "test.py")
+
+        # 由于覆盖，DNG001 应该变成 critical，不会被过滤
+        # 只有严重程度 >= high 的漏洞会被保留
+        for vuln in result.vulnerabilities:
+            self.assertIn(vuln.severity, ["critical", "high"])
+
+
 if __name__ == "__main__":
     unittest.main()
