@@ -14,6 +14,7 @@ from .models import ScanConfig
 from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules
 from .config import Config
+from .fixer import CodeFixer, get_fixer
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -82,6 +83,22 @@ def create_parser() -> argparse.ArgumentParser:
         "--no-cache",
         action="store_true",
         help="禁用 AST 缓存，强制重新解析所有文件",
+    )
+    # 修复功能参数
+    scan_parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="自动修复可修复的安全问题（仅支持低风险修复）",
+    )
+    scan_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="仅显示修复预览，不实际修改文件（需配合 --fix 使用）",
+    )
+    scan_parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="交互式确认每个修复操作（需配合 --fix 使用）",
     )
 
     # rules 命令
@@ -215,6 +232,16 @@ def cmd_scan(args):
         print(f"发现漏洞: {result.summary['total']} 个")
         print("-" * 50)
 
+    # 处理修复功能
+    fix_results = []
+    if hasattr(args, "fix") and args.fix and result.vulnerabilities:
+        fix_results = _handle_fix(
+            result,
+            dry_run=getattr(args, "dry_run", False),
+            interactive=getattr(args, "interactive", False),
+            quiet=args.quiet,
+        )
+
     # 生成报告
     reporter = get_reporter(args.format)
     report = reporter.generate(result)
@@ -234,6 +261,106 @@ def cmd_scan(args):
     elif result.summary["total"] > 0:
         return 1  # 发现漏洞
     return 0
+
+
+def _handle_fix(result, dry_run=False, interactive=False, quiet=False):
+    """
+    处理修复功能
+
+    Args:
+        result: 扫描结果
+        dry_run: 是否只预览不实际修改
+        interactive: 是否交互式确认
+        quiet: 是否静默模式
+
+    Returns:
+        修复结果列表
+    """
+    fixer = get_fixer()
+    all_fix_results = []
+
+    # 按文件分组漏洞
+    vulns_by_file = {}
+    for vuln in result.vulnerabilities:
+        if vuln.file_path not in vulns_by_file:
+            vulns_by_file[vuln.file_path] = []
+        vulns_by_file[vuln.file_path].append(vuln)
+
+    if not quiet:
+        mode_str = "预览模式" if dry_run else "修复模式"
+        print(f"\n{'='*50}")
+        print(f"🔧 修复建议 ({mode_str})")
+        print("=" * 50)
+
+    def confirm_callback(fix_result):
+        """交互式确认回调"""
+        print(f"\n是否应用此修复? [{fix_result.vulnerability.rule_id}] "
+              f"{fix_result.vulnerability.file_path}:{fix_result.vulnerability.line_number}")
+        print(f"原始代码: {fix_result.original_code}")
+        if fix_result.diff:
+            print("修复预览:")
+            print(fix_result.diff[:500] + "..." if len(fix_result.diff) > 500 else fix_result.diff)
+        response = input("应用修复? (y/n): ").strip().lower()
+        return response == 'y'
+
+    for file_path, vulns in vulns_by_file.items():
+        if not quiet:
+            print(f"\n📁 {file_path}")
+
+        # 检查哪些漏洞可以修复
+        fixable_vulns = []
+        for vuln in vulns:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    source_code = f.read()
+                if fixer.can_fix(vuln, source_code):
+                    fixable_vulns.append(vuln)
+            except Exception:
+                pass
+
+        if fixable_vulns:
+            fix_results = fixer.fix_file(
+                file_path,
+                fixable_vulns,
+                dry_run=dry_run,
+                interactive=interactive,
+                confirm_callback=confirm_callback if interactive else None,
+            )
+            all_fix_results.extend(fix_results)
+
+            for fr in fix_results:
+                status = "✅ 已修复" if fr.applied else ("📝 预览" if fr.success else "❌ 无法自动修复")
+                if not quiet:
+                    print(f"  {status} [{fr.vulnerability.rule_id}] 第 {fr.vulnerability.line_number} 行")
+                    if dry_run and fr.diff:
+                        # 显示简短的 diff 预览
+                        diff_lines = fr.diff.split('\n')[:10]
+                        for line in diff_lines:
+                            print(f"    {line}")
+                        if len(fr.diff.split('\n')) > 10:
+                            print("    ...")
+
+        # 显示不可自动修复的漏洞的修复示例
+        non_fixable = [v for v in vulns if v not in fixable_vulns]
+        for vuln in non_fixable:
+            example = fixer.get_fix_example(vuln)
+            if example and not quiet:
+                print(f"  📖 [{vuln.rule_id}] 第 {vuln.line_number} 行 - 需手动修复")
+                if dry_run:  # 只在 dry-run 模式下显示完整示例
+                    print("    修复示例:")
+                    for line in example.split('\n')[:8]:
+                        print(f"      {line}")
+                    print("      ...")
+
+    # 输出修复统计
+    if not quiet:
+        applied = sum(1 for r in all_fix_results if r.applied)
+        total_fixable = len(all_fix_results)
+        print(f"\n修复统计: 已应用 {applied}/{total_fixable} 个自动修复")
+        if dry_run:
+            print("提示: 使用 --fix 而不带 --dry-run 以实际应用修复")
+
+    return all_fix_results
 
 
 def cmd_rules(args):

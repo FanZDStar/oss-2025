@@ -20,6 +20,11 @@ class Vulnerability:
     code_snippet: str  # 漏洞代码片段
     description: str  # 漏洞描述
     suggestion: str  # 修复建议
+    # 修复相关字段
+    fix_example: str = ""  # 修复后的代码示例
+    fix_code: Optional[str] = None  # 可自动应用的修复代码（如果为None则不可自动修复）
+    auto_fixable: bool = False  # 是否可自动修复
+    fix_risk: str = "high"  # 修复风险等级: low/medium/high
 
     def to_dict(self) -> dict:
         """转换为字典"""
@@ -33,6 +38,10 @@ class Vulnerability:
             "code_snippet": self.code_snippet,
             "description": self.description,
             "suggestion": self.suggestion,
+            "fix_example": self.fix_example,
+            "fix_code": self.fix_code,
+            "auto_fixable": self.auto_fixable,
+            "fix_risk": self.fix_risk,
         }
 
 
@@ -164,3 +173,36 @@ class ScanConfig:
         if self.min_severity is None:
             return True
         return get_severity_value(severity) <= get_severity_value(self.min_severity)
+
+
+# 修复风险等级
+FIX_RISK_LEVELS = ["low", "medium", "high"]
+
+
+@dataclass
+class FixResult:
+    """修复结果数据类"""
+
+    vulnerability: Vulnerability  # 被修复的漏洞
+    file_path: str  # 文件路径
+    original_code: str  # 原始代码
+    fixed_code: str  # 修复后的代码
+    success: bool = True  # 是否修复成功
+    error: Optional[str] = None  # 错误信息
+    applied: bool = False  # 是否已应用修复
+    diff: str = ""  # diff 格式的修复差异
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            "file_path": self.file_path,
+            "rule_id": self.vulnerability.rule_id,
+            "line_number": self.vulnerability.line_number,
+            "original_code": self.original_code,
+            "fixed_code": self.fixed_code,
+            "success": self.success,
+            "error": self.error,
+            "applied": self.applied,
+            "diff": self.diff,
+        }
+

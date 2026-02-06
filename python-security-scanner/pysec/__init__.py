@@ -13,14 +13,19 @@ PySecScanner - Python代码安全漏洞静态分析工具
 __version__ = "1.0.0"
 __author__ = "PySecScanner Team"
 
-from .models import Vulnerability, ScanResult, ScanConfig
+from .models import Vulnerability, ScanResult, ScanConfig, FixResult
 from .scanner import Scanner
 from .engine import RuleEngine
+from .fixer import CodeFixer, get_fixer
 
 __all__ = [
     "Vulnerability",
     "ScanResult",
     "ScanConfig",
+    "FixResult",
     "Scanner",
     "RuleEngine",
+    "CodeFixer",
+    "get_fixer",
 ]
+
