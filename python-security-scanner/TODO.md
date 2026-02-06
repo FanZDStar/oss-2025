@@ -181,16 +181,16 @@ password_hash = hashlib.md5(password.encode()).hexdigest()
 password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 ```
 
-### 2.4 不安全的SSL/TLS配置 ⏳
+### 2.4 不安全的SSL/TLS配置 ✅
 
 **规则ID:** SSL001  
 **严重程度:** High  
 **预计工作量:** 2 小时
 
-- [ ] 检测 `verify=False` 禁用证书验证
-- [ ] 检测 `ssl._create_unverified_context()`
-- [ ] 检测过时的 SSL/TLS 版本
-- [ ] 检测不安全的密码套件配置
+- [x] 检测 `verify=False` 禁用证书验证
+- [x] 检测 `ssl._create_unverified_context()`
+- [x] 检测过时的 SSL/TLS 版本
+- [x] 检测不安全的密码套件配置
 
 ```python
 # 危险
@@ -202,16 +202,16 @@ requests.get(url, verify=True)
 ssl.create_default_context()
 ```
 
-### 2.5 日志敏感信息泄露 ⏳
+### 2.5 日志敏感信息泄露 ✅
 
 **规则ID:** LOG001  
 **严重程度:** Medium  
 **预计工作量:** 2 小时
 
-- [ ] 检测日志中包含密码变量
-- [ ] 检测日志中包含令牌/密钥
-- [ ] 检测日志中包含用户敏感数据
-- [ ] 检测 f-string 格式化敏感变量到日志
+- [x] 检测日志中包含密码变量
+- [x] 检测日志中包含令牌/密钥
+- [x] 检测日志中包含用户敏感数据
+- [x] 检测 f-string 格式化敏感变量到日志
 
 ```python
 # 危险

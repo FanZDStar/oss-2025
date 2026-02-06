@@ -434,6 +434,80 @@ if pbkdf2_sha256.verify(password, stored_hash):
     print("密码正确")'''
 
 
+@register_fix_pattern
+class InsecureSSLFixPattern(FixPattern):
+    """不安全SSL配置修复模式 (SSL001)"""
+
+    rule_id = "SSL001"
+    risk_level = "high"
+    auto_fixable = False
+
+    def can_fix(self, vuln: Vulnerability, source_code: str) -> bool:
+        return False
+
+    def generate_fix(self, vuln: Vulnerability, source_code: str) -> Optional[str]:
+        return None
+
+    def get_fix_example(self, vuln: Vulnerability) -> str:
+        return '''# 修复前 (不安全 - 禁用证书验证):
+import requests
+response = requests.get(url, verify=False)
+
+# 或使用不安全的SSL上下文:
+import ssl
+context = ssl._create_unverified_context()
+
+# 修复后 (安全 - 启用证书验证):
+import requests
+response = requests.get(url, verify=True)  # 默认值
+
+# 使用自签名证书:
+response = requests.get(url, verify='/path/to/ca-bundle.crt')
+
+# 创建安全的SSL上下文:
+import ssl
+context = ssl.create_default_context()
+
+# 指定最低TLS版本:
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+context.minimum_version = ssl.TLSVersion.TLSv1_2'''
+
+
+@register_fix_pattern
+class LogSensitiveFixPattern(FixPattern):
+    """日志敏感信息修复模式 (LOG001)"""
+
+    rule_id = "LOG001"
+    risk_level = "medium"
+    auto_fixable = False
+
+    def can_fix(self, vuln: Vulnerability, source_code: str) -> bool:
+        return False
+
+    def generate_fix(self, vuln: Vulnerability, source_code: str) -> Optional[str]:
+        return None
+
+    def get_fix_example(self, vuln: Vulnerability) -> str:
+        return '''# 修复前 (不安全 - 日志中包含敏感信息):
+logger.info(f"User login: {username}, password: {password}")
+logger.debug(f"API call with token: {api_token}")
+
+# 修复后 (安全 - 移除敏感信息):
+logger.info(f"User login: {username}")
+logger.debug("API call with token: [REDACTED]")
+
+# 使用脱敏函数:
+def mask_sensitive(value, show_chars=4):
+    if len(value) <= show_chars:
+        return "***"
+    return value[:show_chars] + "***"
+
+logger.info(f"Token: {mask_sensitive(api_token)}")
+
+# 使用结构化日志,排除敏感字段:
+logger.info("User login", extra={"username": username})  # 不包含password'''
+
+
 # ============================================================================
 # 代码修复器
 # ============================================================================

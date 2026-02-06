@@ -15,6 +15,8 @@ from . import path_traversal
 from . import xss
 from . import insecure_random
 from . import insecure_hash
+from . import insecure_ssl
+from . import log_sensitive
 
 __all__ = [
     "BaseRule",
