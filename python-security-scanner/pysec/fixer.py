@@ -355,6 +355,42 @@ html_content = f"<div>{escape(user_input)}</div>"
 # {{ user_input }}  # 默认自动转义'''
 
 
+@register_fix_pattern
+class InsecureRandomFixPattern(FixPattern):
+    """不安全随机数修复模式 (RND001)"""
+
+    rule_id = "RND001"
+    risk_level = "medium"
+    auto_fixable = False
+
+    def can_fix(self, vuln: Vulnerability, source_code: str) -> bool:
+        return False
+
+    def generate_fix(self, vuln: Vulnerability, source_code: str) -> Optional[str]:
+        return None
+
+    def get_fix_example(self, vuln: Vulnerability) -> str:
+        return '''# 修复前 (不安全 - 使用random生成token):
+import random
+import string
+token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+
+# 修复后 (安全 - 使用secrets模块):
+import secrets
+
+# 生成URL安全的token
+token = secrets.token_urlsafe(32)
+
+# 生成十六进制token
+token = secrets.token_hex(32)
+
+# 安全的随机选择
+item = secrets.choice(items)
+
+# 生成安全的随机整数
+number = secrets.randbelow(100)'''
+
+
 # ============================================================================
 # 代码修复器
 # ============================================================================

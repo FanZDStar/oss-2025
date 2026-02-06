@@ -13,6 +13,7 @@ from . import hardcoded_secrets
 from . import dangerous_functions
 from . import path_traversal
 from . import xss
+from . import insecure_random
 
 __all__ = [
     "BaseRule",

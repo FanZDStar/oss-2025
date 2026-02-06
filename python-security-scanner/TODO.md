@@ -142,16 +142,16 @@ pysec scan . --fix --interactive # 交互式确认每个修复
 - [x] 检测 `dill.loads()` 风险
 - [x] 提供安全的替代方案建议
 
-### 2.2 不安全的随机数生成 ⏳
+### 2.2 不安全的随机数生成 ✅
 
 **规则ID:** RND001  
 **严重程度:** Medium  
 **预计工作量:** 1.5 小时
 
-- [ ] 检测 `random.random()` 用于安全场景
-- [ ] 检测 `random.randint()` 生成密钥/令牌
-- [ ] 推荐使用 `secrets` 模块
-- [ ] 区分安全上下文和非安全上下文
+- [x] 检测 `random.random()` 用于安全场景
+- [x] 检测 `random.randint()` 生成密钥/令牌
+- [x] 推荐使用 `secrets` 模块
+- [x] 区分安全上下文和非安全上下文
 
 ```python
 # 危险：使用random生成token
