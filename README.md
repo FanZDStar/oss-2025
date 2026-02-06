@@ -12,7 +12,8 @@ PySecScanner 是一个基于 AST（抽象语法树）的 Python 代码安全漏�
 ### 主要特性
 
 - 🔍 **AST 深度分析** - 基于抽象语法树进行精确的代码分析
-- 🎯 **多种漏洞检测** - 支持 SQL 注入、命令注入、硬编码凭据等多种漏洞类型
+- 🎯 **10+ 漏洞检测规则** - 支持 SQL 注入、命令注入、硬编码凭据等多种漏洞类型
+- 🔧 **自动修复功能** - 支持低风险漏洞的自动修复，提供 diff 预览
 - 📊 **多格式报告** - 支持 Text、Markdown、JSON、HTML 等多种报告格式
 - 🔌 **可扩展架构** - 插件化的规则系统，便于扩展新的检测规则
 - ⚡ **零外部依赖** - 仅使用 Python 标准库，开箱即用
@@ -70,6 +71,19 @@ python main.py scan . --since main
 python main.py scan . --no-cache
 ```
 
+### 自动修复功能
+
+```bash
+# 预览修复（不实际修改文件）
+python main.py scan . --fix --dry-run
+
+# 自动应用低风险修复
+python main.py scan . --fix
+
+# 交互式确认每个修复
+python main.py scan . --fix --interactive
+```
+
 ### 作为模块使用
 
 ```python
@@ -95,14 +109,18 @@ result = scanner.scan_since("./your_project", "main")
 
 ## 🛡️ 检测规则
 
-| 规则 ID | 名称           | 严重程度 | 描述                                     |
-| ------- | -------------- | -------- | ---------------------------------------- |
-| SQL001  | SQL注入检测    | High     | 检测 SQL 字符串拼接、格式化等不安全操作  |
-| CMD001  | 命令注入检测   | Critical | 检测 os.system、subprocess 等危险调用    |
-| SEC001  | 硬编码凭据检测 | Medium   | 检测代码中硬编码的密码、密钥等敏感信息   |
-| DNG001  | 危险函数检测   | Critical | 检测 eval、exec、pickle 等危险函数       |
-| PTH001  | 路径遍历检测   | High     | 检测可能导致目录遍历的文件操作           |
-| XSS001  | XSS漏洞检测    | High     | 检测可能导致跨站脚本攻击的代码           |
+| 规则 ID | 名称              | 严重程度 | 描述                                       |
+| ------- | ----------------- | -------- | ------------------------------------------ |
+| SQL001  | SQL注入检测       | High     | 检测 SQL 字符串拼接、格式化等不安全操作       |
+| CMD001  | 命令注入检测       | Critical | 检测 os.system、subprocess 等危险调用       |
+| SEC001  | 硬编码凭据检测     | High     | 检测代码中硬编码的密码、密钥等敏感信息       |
+| DNG001  | 危险函数检测       | Critical | 检测 eval、exec、pickle 等危险函数           |
+| PTH001  | 路径遍历检测       | High     | 检测可能导致目录遍历的文件操作              |
+| XSS001  | XSS漏洞检测        | High     | 检测可能导致跨站脚本攻击的代码              |
+| RND001  | 不安全随机数检测   | Medium   | 检测使用 random 模块生成安全相关随机数     |
+| HSH001  | 不安全哈希算法检测 | Medium   | 检测 MD5/SHA1 用于密码哈希                   |
+| SSL001  | SSL/TLS配置检测    | High     | 检测 verify=False 和不安全SSL上下文 |
+| LOG001  | 日志敏感信息泄露   | Medium   | 检测日志中记录密码、令牌等敏感信息          |
 
 ## ⚙️ 配置文件
 
@@ -136,7 +154,7 @@ python-security-scanner/
 ├── main.py                 # 主入口
 ├── pysec/                  # 核心包
 │   ├── __init__.py        # 包初始化
-│   ├── models.py          # 数据模型
+│   ├── models.py          # 数据模型 (Vulnerability, FixResult)
 │   ├── scanner.py         # 文件扫描器
 │   ├── engine.py          # 规则引擎
 │   ├── reporter.py        # 报告生成器
@@ -144,8 +162,9 @@ python-security-scanner/
 │   ├── config.py          # 配置管理
 │   ├── cache.py           # AST 缓存
 │   ├── git_utils.py       # Git 工具
-│   └── rules/             # 检测规则
-├── tests/                  # 测试文件
+│   ├── fixer.py           # 自动修复器
+│   └── rules/             # 检测规则 (10+ 规则)
+├── tests/                  # 测试文件 (100+ 测试用例)
 └── docs/                   # 文档
 ```
 
