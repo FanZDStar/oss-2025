@@ -391,6 +391,49 @@ item = secrets.choice(items)
 number = secrets.randbelow(100)'''
 
 
+@register_fix_pattern
+class InsecureHashFixPattern(FixPattern):
+    """不安全哈希算法修复模式 (HSH001)"""
+
+    rule_id = "HSH001"
+    risk_level = "medium"
+    auto_fixable = False
+
+    def can_fix(self, vuln: Vulnerability, source_code: str) -> bool:
+        return False
+
+    def generate_fix(self, vuln: Vulnerability, source_code: str) -> Optional[str]:
+        return None
+
+    def get_fix_example(self, vuln: Vulnerability) -> str:
+        return '''# 修复前 (不安全 - 使用MD5/SHA1哈希密码):
+import hashlib
+password_hash = hashlib.md5(password.encode()).hexdigest()
+
+# 修复后 (安全 - 使用bcrypt):
+import bcrypt
+# 哈希密码
+password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+# 验证密码
+if bcrypt.checkpw(password.encode(), stored_hash):
+    print("密码正确")
+
+# 或使用 argon2 (更现代):
+from argon2 import PasswordHasher
+ph = PasswordHasher()
+password_hash = ph.hash(password)
+try:
+    ph.verify(stored_hash, password)
+except argon2.exceptions.VerifyMismatchError:
+    print("密码错误")
+
+# 或使用 passlib (多算法支持):
+from passlib.hash import pbkdf2_sha256
+password_hash = pbkdf2_sha256.hash(password)
+if pbkdf2_sha256.verify(password, stored_hash):
+    print("密码正确")'''
+
+
 # ============================================================================
 # 代码修复器
 # ============================================================================

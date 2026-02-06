@@ -14,6 +14,7 @@ from . import dangerous_functions
 from . import path_traversal
 from . import xss
 from . import insecure_random
+from . import insecure_hash
 
 __all__ = [
     "BaseRule",

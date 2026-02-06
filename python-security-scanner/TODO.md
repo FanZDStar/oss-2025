@@ -161,17 +161,17 @@ token = ''.join(random.choices(string.ascii_letters, k=32))
 token = secrets.token_urlsafe(32)
 ```
 
-### 2.3 不安全的哈希算法 ⏳
+### 2.3 不安全的哈希算法 ✅
 
 **规则ID:** HSH001  
 **严重程度:** Medium  
 **预计工作量:** 2 小时
 
-- [ ] 检测 MD5 用于密码哈希
-- [ ] 检测 SHA1 用于安全场景
-- [ ] 检测弱哈希算法的使用
-- [ ] 推荐 bcrypt/argon2/scrypt
-- [ ] 检测明文密码比较
+- [x] 检测 MD5 用于密码哈希
+- [x] 检测 SHA1 用于安全场景
+- [x] 检测弱哈希算法的使用
+- [x] 推荐 bcrypt/argon2/scrypt
+- [x] 检测明文密码比较
 
 ```python
 # 危险
