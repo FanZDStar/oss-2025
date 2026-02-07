@@ -17,6 +17,7 @@ from . import insecure_random
 from . import insecure_hash
 from . import insecure_ssl
 from . import log_sensitive
+from . import ssrf
 
 __all__ = [
     "BaseRule",
