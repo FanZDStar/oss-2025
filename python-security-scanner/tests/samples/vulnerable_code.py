@@ -181,3 +181,42 @@ def safe_yaml_load(yaml_content):
     # 安全：使用 safe_load
     data = yaml.safe_load(yaml_content)
     return data
+
+
+# ============== SSRF 漏洞 ==============
+
+
+def vulnerable_ssrf_requests(url):
+    """SSRF - requests.get 用户输入URL"""
+    import requests
+
+    # 危险：用户输入直接作为URL
+    response = requests.get(url)
+    return response.text
+
+
+def vulnerable_ssrf_requests_post(user_url):
+    """SSRF - requests.post 用户输入URL"""
+    import requests
+
+    # 危险：用户可控制请求目标
+    response = requests.post(user_url, data={"key": "value"})
+    return response.json()
+
+
+def vulnerable_ssrf_urllib(target_url):
+    """SSRF - urllib.request.urlopen 用户输入URL"""
+    import urllib.request
+
+    # 危险：用户输入直接传递给urlopen
+    response = urllib.request.urlopen(target_url)
+    return response.read()
+
+
+def vulnerable_ssrf_urlopen_direct(url):
+    """SSRF - urlopen 直接调用"""
+    from urllib.request import urlopen
+
+    # 危险：直接使用用户URL
+    response = urlopen(url)
+    return response.read()

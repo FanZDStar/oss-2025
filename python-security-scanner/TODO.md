@@ -221,16 +221,16 @@ logger.info(f"User login: {username}, password: {password}")
 logger.info(f"User login: {username}")
 ```
 
-### 2.6 SSRF (服务端请求伪造) ⏳
+### 2.6 SSRF (服务端请求伪造) ✅
 
 **规则ID:** SSRF001  
 **严重程度:** High  
 **预计工作量:** 2.5 小时
 
-- [ ] 检测用户输入直接作为URL
-- [ ] 检测 `requests.get(user_url)`
-- [ ] 检测 `urllib.request.urlopen(user_url)`
-- [ ] 推荐URL白名单验证
+- [x] 检测用户输入直接作为URL
+- [x] 检测 `requests.get(user_url)`
+- [x] 检测 `urllib.request.urlopen(user_url)`
+- [x] 推荐URL白名单验证
 
 ```python
 # 危险
