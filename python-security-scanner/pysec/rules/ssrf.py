@@ -23,6 +23,9 @@ class SSRFRule(BaseRule):
     # requests 库的危险函数
     REQUESTS_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "request"}
 
+    # urllib 库的危险函数
+    URLLIB_FUNCTIONS = {"urlopen", "urlretrieve", "Request"}
+
     def check(self, ast_tree: ast.AST, file_path: str, source_code: str) -> List[Vulnerability]:
         vulnerabilities = []
 
@@ -32,6 +35,10 @@ class SSRFRule(BaseRule):
             if isinstance(node, ast.Call):
                 # 检测 requests.get(url) 等调用
                 vuln = self._check_requests_call(node, file_path, source_code)
+
+                # 检测 urllib.request.urlopen(url) 等调用
+                if not vuln:
+                    vuln = self._check_urllib_call(node, file_path, source_code)
 
             if vuln:
                 vulnerabilities.append(vuln)
@@ -76,6 +83,63 @@ class SSRFRule(BaseRule):
                 column=node.col_offset,
                 code_snippet=self._get_source_line(source_code, node.lineno),
                 description=f"requests.{node.func.attr}() 的URL参数可能来自用户输入，存在SSRF风险",
+                suggestion="建议对URL进行白名单验证，只允许访问可信的域名。可使用 urllib.parse 解析URL并验证域名。",
+                severity=self.severity,
+            )
+
+        return None
+
+    def _check_urllib_call(self, node: ast.Call, file_path: str, source_code: str) -> Vulnerability:
+        """检测 urllib 库的调用"""
+        func_name = None
+        module_name = None
+
+        # 检查 urllib.request.urlopen(url) 形式
+        if isinstance(node.func, ast.Attribute):
+            func_name = node.func.attr
+            # urllib.request.urlopen
+            if isinstance(node.func.value, ast.Attribute):
+                if node.func.value.attr == "request":
+                    if isinstance(node.func.value.value, ast.Name):
+                        if node.func.value.value.id == "urllib":
+                            module_name = "urllib.request"
+            # request.urlopen (from urllib import request)
+            elif isinstance(node.func.value, ast.Name):
+                if node.func.value.id == "request":
+                    module_name = "urllib.request"
+
+        # 检查 urlopen(url) 直接调用形式 (from urllib.request import urlopen)
+        elif isinstance(node.func, ast.Name):
+            if node.func.id in self.URLLIB_FUNCTIONS:
+                func_name = node.func.id
+                module_name = "urllib.request"
+
+        if not func_name or func_name not in self.URLLIB_FUNCTIONS:
+            return None
+
+        if not module_name:
+            return None
+
+        # 获取URL参数
+        if not node.args:
+            url_arg = None
+            for keyword in node.keywords:
+                if keyword.arg == "url":
+                    url_arg = keyword.value
+                    break
+            if not url_arg:
+                return None
+        else:
+            url_arg = node.args[0]
+
+        # 检查URL参数是否可能来自用户输入
+        if self._is_potentially_user_input(url_arg):
+            return self._create_vulnerability(
+                file_path=file_path,
+                line_number=node.lineno,
+                column=node.col_offset,
+                code_snippet=self._get_source_line(source_code, node.lineno),
+                description=f"{module_name}.{func_name}() 的URL参数可能来自用户输入，存在SSRF风险",
                 suggestion="建议对URL进行白名单验证，只允许访问可信的域名。可使用 urllib.parse 解析URL并验证域名。",
                 severity=self.severity,
             )
