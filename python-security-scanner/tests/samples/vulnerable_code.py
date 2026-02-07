@@ -220,3 +220,32 @@ def vulnerable_ssrf_urlopen_direct(url):
     # 危险：直接使用用户URL
     response = urlopen(url)
     return response.read()
+
+
+# ============== XXE 漏洞 ==============
+
+
+def vulnerable_xxe_elementtree(xml_file):
+    """XXE - xml.etree.ElementTree 不安全解析"""
+    import xml.etree.ElementTree as ET
+
+    # 危险：默认配置存在XXE风险
+    tree = ET.parse(xml_file)
+    return tree.getroot()
+
+
+def vulnerable_xxe_lxml(xml_content):
+    """XXE - lxml 不安全解析"""
+    from lxml import etree
+
+    # 危险：默认配置允许外部实体
+    doc = etree.fromstring(xml_content)
+    return doc
+
+
+def vulnerable_xxe_sax(xml_file):
+    """XXE - xml.sax 不安全解析"""
+    import xml.sax
+
+    # 危险：xml.sax 默认配置存在XXE风险
+    xml.sax.parse(xml_file, xml.sax.ContentHandler())

@@ -243,16 +243,16 @@ if is_allowed_domain(url):
     response = requests.get(url)
 ```
 
-### 2.7 XML外部实体注入 (XXE) ⏳
+### 2.7 XML外部实体注入 (XXE) ✅
 
 **规则ID:** XXE001  
 **严重程度:** High  
 **预计工作量:** 2 小时
 
-- [ ] 检测 `xml.etree.ElementTree` 不安全解析
-- [ ] 检测 `lxml` 外部实体解析
-- [ ] 检测 `xml.sax` 不安全配置
-- [ ] 推荐 `defusedxml` 库
+- [x] 检测 `xml.etree.ElementTree` 不安全解析
+- [x] 检测 `lxml` 外部实体解析
+- [x] 检测 `xml.sax` 不安全配置
+- [x] 推荐 `defusedxml` 库
 
 ```python
 # 危险

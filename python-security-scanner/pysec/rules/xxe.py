@@ -26,6 +26,9 @@ class XXERule(BaseRule):
     # lxml 的危险函数
     LXML_DANGEROUS_FUNCS = {"parse", "fromstring", "XML", "HTML"}
 
+    # xml.sax 的危险函数
+    SAX_DANGEROUS_FUNCS = {"parse", "parseString", "make_parser"}
+
     def check(self, ast_tree: ast.AST, file_path: str, source_code: str) -> List[Vulnerability]:
         vulnerabilities = []
 
@@ -39,6 +42,10 @@ class XXERule(BaseRule):
                 # 检测 lxml 调用
                 if not vuln:
                     vuln = self._check_lxml_call(node, file_path, source_code)
+
+                # 检测 xml.sax 调用
+                if not vuln:
+                    vuln = self._check_sax_call(node, file_path, source_code)
 
             if vuln:
                 vulnerabilities.append(vuln)
@@ -84,9 +91,7 @@ class XXERule(BaseRule):
             severity=self.severity,
         )
 
-    def _check_lxml_call(
-        self, node: ast.Call, file_path: str, source_code: str
-    ) -> Vulnerability:
+    def _check_lxml_call(self, node: ast.Call, file_path: str, source_code: str) -> Vulnerability:
         """检测 lxml 的不安全调用"""
         func_name = None
         is_lxml_call = False
@@ -137,3 +142,40 @@ class XXERule(BaseRule):
                     if keyword.value.value is True:
                         return True
         return False
+
+    def _check_sax_call(self, node: ast.Call, file_path: str, source_code: str) -> Vulnerability:
+        """检测 xml.sax 的不安全调用"""
+        func_name = None
+        is_sax_call = False
+
+        if isinstance(node.func, ast.Attribute):
+            func_name = node.func.attr
+            # 检查 sax.parse() / sax.parseString() 形式
+            if isinstance(node.func.value, ast.Name):
+                if node.func.value.id == "sax":
+                    is_sax_call = True
+            # 检查 xml.sax.parse() 形式
+            elif isinstance(node.func.value, ast.Attribute):
+                if node.func.value.attr == "sax":
+                    if isinstance(node.func.value.value, ast.Name):
+                        if node.func.value.value.id == "xml":
+                            is_sax_call = True
+
+        # 检查直接导入的函数调用
+        elif isinstance(node.func, ast.Name):
+            if node.func.id in self.SAX_DANGEROUS_FUNCS:
+                func_name = node.func.id
+                is_sax_call = True
+
+        if not is_sax_call or func_name not in self.SAX_DANGEROUS_FUNCS:
+            return None
+
+        return self._create_vulnerability(
+            file_path=file_path,
+            line_number=node.lineno,
+            column=node.col_offset,
+            code_snippet=self._get_source_line(source_code, node.lineno),
+            description=f"使用 xml.sax.{func_name}() 解析XML，默认配置存在XXE风险",
+            suggestion="建议使用 defusedxml.sax 代替标准库。例如: from defusedxml import sax",
+            severity=self.severity,
+        )
