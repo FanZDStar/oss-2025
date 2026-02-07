@@ -18,6 +18,7 @@ from . import insecure_hash
 from . import insecure_ssl
 from . import log_sensitive
 from . import ssrf
+from . import xxe
 
 __all__ = [
     "BaseRule",
