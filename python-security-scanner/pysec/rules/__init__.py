@@ -19,6 +19,7 @@ from . import insecure_ssl
 from . import log_sensitive
 from . import ssrf
 from . import xxe
+from . import redos
 
 __all__ = [
     "BaseRule",

@@ -263,16 +263,16 @@ import defusedxml.ElementTree as ET
 tree = ET.parse(user_file)
 ```
 
-### 2.8 正则表达式DoS (ReDoS) ⏳
+### 2.8 正则表达式DoS (ReDoS) ✅
 
 **规则ID:** REX001  
 **严重程度:** Medium  
 **预计工作量:** 3 小时
 
-- [ ] 检测灾难性回溯正则表达式
-- [ ] 识别嵌套量词 `(a+)+`
-- [ ] 识别重叠交替 `(a|a)+`
-- [ ] 推荐设置超时或使用 `re2`
+- [x] 检测灾难性回溯正则表达式
+- [x] 识别嵌套量词 `(a+)+`
+- [x] 识别重叠交替 `(a|a)+`
+- [x] 推荐设置超时或使用 `re2`
 
 ```python
 # 危险：可能导致ReDoS
