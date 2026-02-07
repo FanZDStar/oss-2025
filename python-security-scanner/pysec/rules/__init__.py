@@ -20,6 +20,8 @@ from . import log_sensitive
 from . import ssrf
 from . import xxe
 from . import redos
+from . import django_security
+from . import flask_security
 
 __all__ = [
     "BaseRule",

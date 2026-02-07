@@ -284,30 +284,30 @@ import re2
 re2.match(pattern, user_input)
 ```
 
-### 2.9 Django特定安全检测 ⏳
+### 2.9 Django特定安全检测 ✅
 
 **规则ID:** DJG001-DJG005  
 **严重程度:** 各异  
-**预计工作量:** 4 小时
+**完成时间:** 4 小时
 
-- [ ] 检测 `DEBUG = True` 在生产环境
-- [ ] 检测 `SECRET_KEY` 硬编码
-- [ ] 检测 `ALLOWED_HOSTS = ['*']`
-- [ ] 检测 CSRF 保护禁用
-- [ ] 检测不安全的 `raw()` SQL查询
-- [ ] 检测 `extra()` 和 `RawSQL()` 使用
+- [x] 检测 `DEBUG = True` 在生产环境 - DJG001
+- [x] 检测 `SECRET_KEY` 硬编码 - DJG002
+- [x] 检测 `ALLOWED_HOSTS = ['*']` - DJG003
+- [x] 检测 CSRF 保护禁用 - DJG004
+- [x] 检测不安全的 `raw()` SQL查询 - DJG005
+- [x] 检测 `extra()` 和 `RawSQL()` 使用 - DJG005
 
-### 2.10 Flask特定安全检测 ⏳
+### 2.10 Flask特定安全检测 ✅
 
 **规则ID:** FLK001-FLK005  
 **严重程度:** 各异  
-**预计工作量:** 3 小时
+**完成时间:** 3 小时
 
-- [ ] 检测 `app.run(debug=True)`
-- [ ] 检测硬编码 `SECRET_KEY`
-- [ ] 检测不安全的会话配置
-- [ ] 检测 `send_file()` 路径遍历
-- [ ] 检测禁用的 CSRF 保护
+- [x] 检测 `app.run(debug=True)` - FLK001
+- [x] 检测硬编码 `SECRET_KEY` - FLK002
+- [x] 检测不安全的会话配置 - FLK003
+- [x] 检测 Jinja2 模板注入 (SSTI) - FLK004
+- [x] 检测不安全的文件上传 - FLK005
 
 ---
 
