@@ -10,6 +10,10 @@ from datetime import datetime
 from typing import Dict, Type
 
 from .models import ScanResult, Vulnerability
+from .colors import (
+    header, bold, severity_badge, severity_color,
+    green, blue, gray, success, ColorSupport
+)
 
 
 class BaseReporter(ABC):
@@ -56,37 +60,37 @@ class TextReporter(BaseReporter):
 
         # 标题
         lines.append("=" * 60)
-        lines.append("PySecScanner 安全扫描报告")
+        lines.append(header("PySecScanner 安全扫描报告"))
         lines.append("=" * 60)
         lines.append("")
 
         # 基本信息
-        lines.append(f"扫描目标: {result.target}")
-        lines.append(f"扫描时间: {result.scan_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append(f"扫描耗时: {result.duration:.2f} 秒")
-        lines.append(f"扫描文件: {result.files_scanned} 个")
+        lines.append(f"{bold('扫描目标:')} {result.target}")
+        lines.append(f"{bold('扫描时间:')} {result.scan_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append(f"{bold('扫描耗时:')} {result.duration:.2f} 秒")
+        lines.append(f"{bold('扫描文件:')} {result.files_scanned} 个")
         lines.append("")
 
         # 统计摘要
         summary = result.summary
         lines.append("-" * 40)
-        lines.append("漏洞统计")
+        lines.append(header("漏洞统计"))
         lines.append("-" * 40)
-        lines.append(f"  严重 (Critical): {summary['critical']}")
-        lines.append(f"  高危 (High):     {summary['high']}")
-        lines.append(f"  中危 (Medium):   {summary['medium']}")
-        lines.append(f"  低危 (Low):      {summary['low']}")
-        lines.append(f"  总计:            {summary['total']}")
+        lines.append(f"  {severity_color('critical', '严重 (Critical):'):<25} {summary['critical']}")
+        lines.append(f"  {severity_color('high', '高危 (High):'):<25} {summary['high']}")
+        lines.append(f"  {severity_color('medium', '中危 (Medium):'):<25} {summary['medium']}")
+        lines.append(f"  {severity_color('low', '低危 (Low):'):<25} {summary['low']}")
+        lines.append(f"  {bold('总计:'):<25} {summary['total']}")
         if summary.get("ignored", 0) > 0:
-            lines.append(f"  已忽略:          {summary['ignored']}")
+            lines.append(f"  {gray('已忽略:'):<25} {summary['ignored']}")
         if summary.get("filtered", 0) > 0:
-            lines.append(f"  已过滤:          {summary['filtered']}")
+            lines.append(f"  {gray('已过滤:'):<25} {summary['filtered']}")
         lines.append("")
 
         # 漏洞详情
         if result.vulnerabilities:
             lines.append("-" * 40)
-            lines.append("漏洞详情")
+            lines.append(header("漏洞详情"))
             lines.append("-" * 40)
             lines.append("")
 
@@ -97,30 +101,31 @@ class TextReporter(BaseReporter):
             )
 
             for i, vuln in enumerate(sorted_vulns, 1):
-                symbol = self.SEVERITY_SYMBOLS.get(vuln.severity, "[?]")
-                lines.append(f"{i}. {symbol} [{vuln.rule_id}] {vuln.rule_name}")
-                lines.append(f"   严重程度: {vuln.severity.upper()}")
-                lines.append(f"   位置: {vuln.file_path}:{vuln.line_number}")
-                lines.append(f"   描述: {vuln.description}")
-                lines.append(f"   代码: {vuln.code_snippet}")
-                lines.append(f"   建议: {vuln.suggestion}")
+                badge = severity_badge(vuln.severity)
+                rule_id = blue(f"[{vuln.rule_id}]", bold=True)
+                lines.append(f"{i}. {badge} {rule_id} {vuln.rule_name}")
+                lines.append(f"   {bold('严重程度:')} {severity_color(vuln.severity, vuln.severity.upper())}")
+                lines.append(f"   {bold('位置:')} {vuln.file_path}:{vuln.line_number}")
+                lines.append(f"   {bold('描述:')} {vuln.description}")
+                lines.append(f"   {bold('代码:')} {gray(vuln.code_snippet)}")
+                lines.append(f"   {bold('建议:')} {vuln.suggestion}")
                 lines.append("")
         else:
-            lines.append("✓ 未发现安全漏洞")
+            lines.append(success("未发现安全漏洞"))
             lines.append("")
 
         # 错误信息
         if result.errors:
             lines.append("-" * 40)
-            lines.append("扫描错误")
+            lines.append(header("扫描错误"))
             lines.append("-" * 40)
             for error in result.errors:
-                lines.append(f"  - {error}")
+                lines.append(f"  - {gray(error)}")
             lines.append("")
 
         # 页脚
         lines.append("=" * 60)
-        lines.append(f"报告由 PySecScanner v1.0.0 生成")
+        lines.append(f"报告由 {blue('PySecScanner v1.0.0', bold=True)} 生成")
         lines.append("=" * 60)
 
         return "\n".join(lines)

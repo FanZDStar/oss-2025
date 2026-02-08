@@ -15,6 +15,7 @@ from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules
 from .config import Config
 from .fixer import CodeFixer, get_fixer
+from .colors import ColorSupport, header, bold, success, error, warning, info, severity_color, blue
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -100,10 +101,20 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="交互式确认每个修复操作（需配合 --fix 使用）",
     )
+    scan_parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="禁用彩色输出（适用于不支持 ANSI 颜色的终端）",
+    )
 
     # rules 命令
     rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
     rules_parser.add_argument("--verbose", action="store_true", help="显示规则详细信息")
+    rules_parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="禁用彩色输出",
+    )
 
     # version 命令
     subparsers.add_parser("version", help="显示版本信息")
@@ -113,11 +124,15 @@ def create_parser() -> argparse.ArgumentParser:
 
 def cmd_scan(args):
     """执行扫描命令"""
+    # 处理颜色输出设置
+    if args.no_color:
+        ColorSupport.disable()
+    
     target = Path(args.target)
 
     # 验证目标路径
     if not target.exists():
-        print(f"错误: 目标路径不存在: {args.target}", file=sys.stderr)
+        print(error(f"目标路径不存在: {args.target}"), file=sys.stderr)
         return 1
 
     # 加载配置文件
@@ -185,14 +200,14 @@ def cmd_scan(args):
 
     if not args.quiet:
         print("=" * 50)
-        print("PySecScanner - Python 代码安全扫描器")
+        print(header("PySecScanner - Python 代码安全扫描器"))
         print("=" * 50)
-        print(f"扫描目标: {target.absolute()}")
-        print(f"启用规则: {len(scanner.get_rules())} 个")
+        print(f"{bold('扫描目标:')} {target.absolute()}")
+        print(f"{bold('启用规则:')} {len(scanner.get_rules())} 个")
         if hasattr(args, "changed_only") and args.changed_only:
-            print("扫描模式: 增量扫描（仅扫描Git修改的文件）")
+            print(f"{bold('扫描模式:')} {info('增量扫描（仅扫描Git修改的文件）')}")
         elif hasattr(args, "since") and args.since:
-            print(f"扫描模式: 增量扫描（自 {args.since} 以来修改的文件）")
+            print(f"{bold('扫描模式:')} {info(f'增量扫描（自 {args.since} 以来修改的文件）')}")
         print("-" * 50)
 
     # 执行扫描
@@ -205,9 +220,9 @@ def cmd_scan(args):
         result = scanner.scan_since(str(target), args.since)
         # 检查是否有错误
         if result.errors:
-            for error in result.errors:
-                if "Git 仓库" in error or "Git 引用" in error:
-                    print(f"错误: {error}", file=sys.stderr)
+            for err_msg in result.errors:
+                if "Git 仓库" in err_msg or "Git 引用" in err_msg:
+                    print(error(f"{err_msg}"), file=sys.stderr)
                     return 1
         if result.files_scanned == 0 and not result.errors:
             if not args.quiet:
@@ -227,9 +242,18 @@ def cmd_scan(args):
         result = scanner.scan(str(target))
 
     if not args.quiet:
-        print(f"扫描完成! 耗时: {result.duration:.2f} 秒")
-        print(f"扫描文件: {result.files_scanned} 个")
-        print(f"发现漏洞: {result.summary['total']} 个")
+        print(success(f"扫描完成! 耗时: {result.duration:.2f} 秒"))
+        print(f"{bold('扫描文件:')} {result.files_scanned} 个")
+        
+        # 根据漏洞数量使用不同颜色
+        total_vulns = result.summary['total']
+        if total_vulns == 0:
+            print(f"{bold('发现漏洞:')} {success(f'{total_vulns} 个')}")
+        elif total_vulns < 5:
+            print(f"{bold('发现漏洞:')} {warning(f'{total_vulns} 个')}")
+        else:
+            print(f"{bold('发现漏洞:')} {error(f'{total_vulns} 个')}")
+        
         print("-" * 50)
 
     # 处理修复功能
@@ -365,33 +389,37 @@ def _handle_fix(result, dry_run=False, interactive=False, quiet=False):
 
 def cmd_rules(args):
     """列出规则命令"""
+    # 处理颜色输出设置
+    if args.no_color:
+        ColorSupport.disable()
+    
     rules = list_rules()
 
     print("=" * 50)
-    print("PySecScanner 检测规则列表")
+    print(header("PySecScanner 检测规则列表"))
     print("=" * 50)
     print()
 
     if args.verbose:
         for rule in rules:
             instance = rule()
-            print(f"规则ID: {instance.rule_id}")
-            print(f"名称:   {instance.rule_name}")
-            print(f"严重程度: {instance.severity.upper()}")
-            print(f"描述: {instance.description}")
+            print(f"{bold('规则ID:')} {blue(instance.rule_id, bold=True)}")
+            print(f"{bold('名称:')}   {instance.rule_name}")
+            print(f"{bold('严重程度:')} {severity_color(instance.severity, instance.severity.upper())}")
+            print(f"{bold('描述:')} {instance.description}")
             print("-" * 40)
             print()
     else:
-        print(f"{'规则ID':<10} {'严重程度':<10} {'名称':<30}")
+        print(f"{bold('规则ID'):<15} {bold('严重程度'):<15} {bold('名称')}")
         print("-" * 55)
         for rule in rules:
             instance = rule()
-            print(
-                f"{instance.rule_id:<10} {instance.severity.upper():<10} {instance.rule_name:<30}"
-            )
+            rule_id = blue(instance.rule_id)
+            severity_text = severity_color(instance.severity, instance.severity.upper())
+            print(f"{rule_id:<25} {severity_text:<25} {instance.rule_name}")
 
     print()
-    print(f"共 {len(rules)} 条规则")
+    print(f"共 {bold(str(len(rules)))} 条规则")
     return 0
 
 
