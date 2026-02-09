@@ -6,7 +6,6 @@
 
 import ast
 import os
-import concurrent.futures
 import fnmatch
 from pathlib import Path
 from typing import Optional, Tuple, List, Generator
@@ -327,73 +326,3 @@ class Scanner:
             return self._cache.get_stats()
         return {"enabled": False}
 
-def scan_files_parallel(
-        self, 
-        file_paths: List[str], 
-        max_workers: int = None
-    ) -> List[Tuple[str, Optional[ast.AST], str, Optional[str]]]:
-        """
-        多线程并行扫描多个文件
-        
-        Args:
-            file_paths: 要扫描的文件路径列表
-            max_workers: 最大线程数，默认为CPU核心数
-            
-        Returns:
-            扫描结果列表，每个元素是 (文件路径, AST树, 源代码, 错误信息)
-        """
-        if not file_paths:
-            return []
-        
-        # 自动检测CPU核心数
-        if max_workers is None:
-            max_workers = os.cpu_count() or 1
-        
-        all_results = []
-        
-        # 使用线程池执行器进行并行扫描
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 提交所有任务
-            future_to_file = {}
-            for file_path in file_paths:
-                # 使用 lambda 包装 scan_files 的处理逻辑
-                future = executor.submit(
-                    lambda fp: self._process_single_file(fp),
-                    file_path
-                )
-                future_to_file[future] = file_path
-            
-            # 收集结果
-            for future in concurrent.futures.as_completed(future_to_file):
-                file_path = future_to_file[future]
-                try:
-                    result = future.result()
-                    all_results.append(result)
-                except Exception as e:
-                    all_results.append((file_path, None, "", f"处理文件时出错: {e}"))
-        
-        return all_results
-    
-    def _process_single_file(
-        self, 
-        file_path: str
-    ) -> Tuple[str, Optional[ast.AST], str, Optional[str]]:
-        """
-        处理单个文件的内部方法（线程安全）
-        
-        Args:
-            file_path: 文件路径
-            
-        Returns:
-            (文件路径, AST树, 源代码, 错误信息)
-        """
-        abs_path = os.path.abspath(file_path)
-        if os.path.isfile(abs_path):
-            validated_path = self.file_scanner.scan_file(abs_path)
-            if validated_path:
-                tree, source, error = self._parse_file_with_cache(validated_path)
-                return validated_path, tree, source, error
-            else:
-                return abs_path, None, "", "文件不符合扫描条件（非Python文件或过大）"
-        else:
-            return abs_path, None, "", f"文件不存在: {abs_path}"
