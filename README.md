@@ -209,4 +209,24 @@ class MyCustomRule(BaseRule):
 
 ---
 
-**PySecScanner** - 让 Python 代码更安全 🛡️
+**PySecScanner** - 让 Python 代码更安全
+
+## 忽略规则
+
+PySec 支持多种忽略规则，方便在特定情况下跳过安全检查：
+
+### 1. 行内忽略
+使用 `# pysec: ignore` 注释可以忽略当前行的所有安全检查：
+
+```python
+password = "secret123"  # pysec: ignore
+```
+
+### 2. 指定规则忽略
+可以忽略特定的规则检查：
+
+```python
+query = f"SELECT * FROM users WHERE id = {user_input}"  # pysec: ignore[SQL001]
+```
+
+更多示例请查看 `examples/ignore_examples.py` 文件。
