@@ -83,6 +83,14 @@ def create_parser() -> argparse.ArgumentParser:
         help="禁用 AST 缓存，强制重新解析所有文件",
     )
 
+scan_parser.add_argument(
+    "--workers", "-w",
+    type=int,
+    default=None,
+    help="指定并行扫描的工作线程数 (默认: CPU核心数)"
+)
+
+
     # rules 命令
     rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
     rules_parser.add_argument("--verbose", action="store_true", help="显示规则详细信息")
@@ -170,6 +178,9 @@ def cmd_scan(args):
     if args.verbose and not args.quiet:
         print("开始扫描...")
 
+    # 导入需要的模块
+    from .scanner import Scanner as FileScanner
+    
     # 根据参数选择扫描模式
     if hasattr(args, 'since') and args.since:
         # 使用 --since 参数的增量扫描
@@ -195,7 +206,33 @@ def cmd_scan(args):
                 print("没有检测到修改的 Python 文件")
             return 0
     else:
-        result = scanner.scan(str(target))
+        # 普通扫描 - 使用多线程优化
+        # 创建文件扫描器获取文件列表
+        file_scanner = FileScanner()
+        
+        if target.is_dir():
+            # 获取目录下的所有文件
+            file_list = list(file_scanner.scan_directory(str(target)))
+        else:
+            # 单个文件
+            validated = file_scanner.scan_file(str(target))
+            file_list = [validated] if validated else []
+        
+        if not file_list:
+            print("没有找到可扫描的 Python 文件")
+            return 0
+        
+        # 输出多线程信息
+        if args.workers is not None and args.workers > 1:
+            print(f"[INFO] 使用 {args.workers} 个工作线程进行并行扫描")
+        elif args.workers is None:
+            workers = os.cpu_count() or 1
+            print(f"[INFO] 使用 {workers} 个工作线程进行并行扫描（自动检测CPU核心数）")
+        else:
+            print("[INFO] 使用单线程扫描")
+        
+        # 使用多线程扫描
+        result = scanner.scan_parallel(file_list, max_workers=args.workers)
 
     if not args.quiet:
         print(f"扫描完成! 耗时: {result.duration:.2f} 秒")
