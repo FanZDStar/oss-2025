@@ -482,10 +482,10 @@ curl -X POST http://localhost:8080/scan \
 **优先级:** 中  
 **预计工作量:** 3 小时
 
-- [ ] 使用 `concurrent.futures` 并行扫描
-- [ ] 支持 `--workers N` 指定线程数
-- [ ] 自动检测 CPU 核心数
-- [ ] 线程安全的结果收集
+- [x] 使用 `concurrent.futures` 并行扫描
+- [x] 支持 `--workers N` 指定线程数
+- [x] 自动检测 CPU 核心数
+- [x] 线程安全的结果收集
 
 ### 5.2 扫描缓存 ⏳
 
