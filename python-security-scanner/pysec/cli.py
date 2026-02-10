@@ -3,11 +3,7 @@
 """
 命令行接口模块
 
-提供友好的命令行交互体验，支持5.5友好的错误信息功能：
-1. 更清晰的错误消息
-2. 常见问题的解决建议
-3. 调试模式 -vvv 详细日志
-4. 错误追踪信息格式化
+提供友好的命令行交互体验，支持5.5友好的错误信息功能和3.3 SARIF格式支持
 """
 
 import argparse
@@ -19,9 +15,9 @@ from pathlib import Path
 from datetime import datetime
 
 from .engine import SecurityScanner
-from .models import ScanConfig
+from .models import ScanConfig, ScanResult
 from .reporter import get_reporter, REPORTER_REGISTRY
-from .rules import list_rules
+from .rules import list_rules, SecurityRule
 from .config import Config
 from .fixer import CodeFixer, get_fixer
 from .colors import ColorSupport, header, bold, success, error, warning, info, severity_color, blue
@@ -311,7 +307,7 @@ def create_parser() -> argparse.ArgumentParser:
   pysec scan ./myproject                    # 扫描目录
   pysec scan app.py                         # 扫描单个文件
   pysec scan ./src -o report.md -f markdown # 生成Markdown报告
-  pysec scan ./src -f json                  # JSON格式输出
+  pysec scan ./src -f sarif                # 生成SARIF格式报告 (3.3任务)
   pysec scan ./src --exclude tests,docs     # 排除目录
   pysec scan . --changed-only               # 仅扫描Git修改的文件
   pysec scan . --since HEAD~5               # 扫描最近5次提交修改的文件
@@ -329,6 +325,10 @@ def create_parser() -> argparse.ArgumentParser:
   • 常见问题的解决建议
   • 调试模式支持 -vvv 参数
   • 格式化的错误追踪信息
+
+SARIF格式支持 (3.3任务):
+  • 支持生成符合SARIF 2.1.0标准的报告
+  • 兼容GitHub Code Scanning和VS Code SARIF Viewer
         """,
     )
 
@@ -342,9 +342,10 @@ def create_parser() -> argparse.ArgumentParser:
         "-f",
         "--format",
         type=str,
-        choices=list(REPORTER_REGISTRY.keys()),
+        # 添加 SARIF 格式支持 (3.3任务)
+        choices=["text", "json", "markdown", "sarif"],
         default="text",
-        help="报告输出格式 (默认: text)",
+        help="报告输出格式 (默认: text)，支持: text, json, markdown, sarif"
     )
     scan_parser.add_argument("-c", "--config", type=str, default=None, help="指定配置文件路径")
     scan_parser.add_argument(
@@ -869,6 +870,7 @@ def cmd_version(args):
         print("  • 支持内存优化（5.3任务）")
         print("  • 支持扫描超时控制（5.4任务）")
         print("  • 友好的错误信息和调试模式（5.5任务）")
+        print("  • SARIF格式报告支持（3.3任务）")
         return 0
     except Exception as e:
         handle_command_error(e, "version", 0)
