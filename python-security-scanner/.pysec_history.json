@@ -1,0 +1,13 @@
+[
+  {
+    "scan_time": "2026-02-11T00:34:59.928272",
+    "target": "pysec",
+    "files_scanned": 35,
+    "duration": 0.68,
+    "total": 42,
+    "critical": 1,
+    "high": 1,
+    "medium": 39,
+    "low": 1
+  }
+]
