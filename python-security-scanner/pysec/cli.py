@@ -20,6 +20,7 @@ from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules, SecurityRule
 from .config import Config
 from .fixer import CodeFixer, get_fixer
+from .progress import ProgressBar
 from .colors import ColorSupport, header, bold, success, error, warning, info, severity_color, blue
 
 
@@ -451,6 +452,11 @@ SARIF格式支持 (3.3任务):
         "--no-color",
         action="store_true",
         help="禁用彩色输出（适用于不支持 ANSI 颜色的终端）",
+    )
+    scan_parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="禁用进度条显示",
     )
 
     # rules 命令
