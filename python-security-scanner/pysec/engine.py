@@ -146,12 +146,13 @@ class SecurityScanner:
         self.scanner = Scanner()
         self.engine = RuleEngine(self.config)
 
-    def scan(self, target: str) -> ScanResult:
+    def scan(self, target: str, progress_callback=None) -> ScanResult:
         """
         扫描目标（文件或目录）
 
         Args:
             target: 目标路径
+            progress_callback: 进度回调函数，签名为 callback(current, total, file_path)
 
         Returns:
             扫描结果
@@ -164,6 +165,11 @@ class SecurityScanner:
 
         for file_path, ast_tree, source_code, error in self.scanner.scan_target(target):
             files_scanned += 1
+
+            # 调用进度回调
+            if progress_callback:
+                total = getattr(self.scanner, '_total_files', 0)
+                progress_callback(files_scanned, total, file_path)
 
             if error:
                 result.add_error(f"{file_path}: {error}")

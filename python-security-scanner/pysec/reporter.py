@@ -453,14 +453,22 @@ class HTMLReporter(BaseReporter):
 
 
 # 报告生成器注册表
+try:
+    from .reporters.sarif_reporter import SarifReporter
+except ImportError:
+    SarifReporter = None
+
 REPORTER_REGISTRY: Dict[str, Type[BaseReporter]] = {
     "text": TextReporter,
     "markdown": MarkdownReporter,
     "md": MarkdownReporter,
     "json": JSONReporter,
     "html": HTMLReporter,
-"sarif": SarifReporter, 
 }
+
+# 仅在 SarifReporter 可用时注册
+if SarifReporter is not None:
+    REPORTER_REGISTRY["sarif"] = SarifReporter
 
 
 def get_reporter(format_type: str) -> BaseReporter:
