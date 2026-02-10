@@ -7,13 +7,29 @@
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Dict, Type
+from typing import Dict, Type, Any, Optional
+from pathlib import Path
 
-from .models import ScanResult, Vulnerability
-from .colors import (
-    header, bold, severity_badge, severity_color,
-    green, blue, gray, success, ColorSupport
-)
+try:
+    from .models import ScanResult, Vulnerability
+    from .colors import (
+        header, bold, severity_badge, severity_color,
+        green, blue, gray, success, ColorSupport
+    )
+    from .reporters.html_charts_reporter import HTMLChartsReporter
+    from .reporters.sarif_reporter import SarifReporter
+except ImportError:
+    # 备用导入
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent))
+    from models import ScanResult, Vulnerability
+    from colors import (
+        header, bold, severity_badge, severity_color,
+        green, blue, gray, success, ColorSupport
+    )
+    from reporters.html_charts_reporter import HTMLChartsReporter
+    from reporters.sarif_reporter import SarifReporter
+
 
 
 class BaseReporter(ABC):
@@ -173,9 +189,9 @@ class MarkdownReporter(BaseReporter):
         lines.append(f"| {self.SEVERITY_ICONS['low']} 低危 (Low) | {summary['low']} |")
         lines.append(f"| **总计** | **{summary['total']}** |")
         if summary.get("ignored", 0) > 0:
-            lines.append(f"| ⏭️ 已忽略 | {summary['ignored']} |")
+            lines.append(f"|  已忽略 | {summary['ignored']} |")
         if summary.get("filtered", 0) > 0:
-            lines.append(f"| 🔽 已过滤 | {summary['filtered']} |")
+            lines.append(f"|  已过滤 | {summary['filtered']} |")
         lines.append("")
 
         # 漏洞详情
@@ -213,7 +229,7 @@ class MarkdownReporter(BaseReporter):
         else:
             lines.append("## 扫描结果")
             lines.append("")
-            lines.append("✅ **未发现安全漏洞**")
+            lines.append(" **未发现安全漏洞**")
             lines.append("")
 
         # 错误信息
@@ -290,7 +306,7 @@ class HTMLReporter(BaseReporter):
                 </div>
                 """
         else:
-            vulns_html = '<div class="success-msg">✅ 未发现安全漏洞</div>'
+            vulns_html = '<div class="success-msg"> 未发现安全漏洞</div>'
 
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -407,9 +423,9 @@ class HTMLReporter(BaseReporter):
 </head>
 <body>
     <div class="container">
-        <h1>🛡️ PySecScanner 安全扫描报告</h1>
+        <h1> PySecScanner 安全扫描报告</h1>
         
-        <h2>📋 扫描信息</h2>
+        <h2> 扫描信息</h2>
         <table class="info-table">
             <tr><th>扫描目标</th><td><code>{result.target}</code></td></tr>
             <tr><th>扫描时间</th><td>{result.scan_time.strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
@@ -417,7 +433,7 @@ class HTMLReporter(BaseReporter):
             <tr><th>扫描文件数</th><td>{result.files_scanned}</td></tr>
         </table>
         
-        <h2>📊 漏洞统计</h2>
+        <h2> 漏洞统计</h2>
         <div class="summary-grid">
             <div class="summary-card critical">
                 <div class="count">{summary['critical']}</div>
@@ -436,10 +452,10 @@ class HTMLReporter(BaseReporter):
                 <div>低危</div>
             </div>
         </div>
-        {f'<p style="text-align: center; color: #666;">⏭️ 已忽略 {summary["ignored"]} 个漏洞（通过 pysec: ignore 注释）</p>' if summary.get('ignored', 0) > 0 else ''}
-        {f'<p style="text-align: center; color: #666;">🔽 已过滤 {summary["filtered"]} 个漏洞（低于最小严重程度）</p>' if summary.get('filtered', 0) > 0 else ''}
+        {f'<p style="text-align: center; color: #666;"> 已忽略 {summary["ignored"]} 个漏洞（通过 pysec: ignore 注释）</p>' if summary.get('ignored', 0) > 0 else ''}
+        {f'<p style="text-align: center; color: #666;"> 已过滤 {summary["filtered"]} 个漏洞（低于最小严重程度）</p>' if summary.get('filtered', 0) > 0 else ''}
         
-        <h2>🔍 漏洞详情</h2>
+        <h2> 漏洞详情</h2>
         {vulns_html}
         
         <div class="footer">
@@ -458,10 +474,13 @@ REPORTER_REGISTRY: Dict[str, Type[BaseReporter]] = {
     "markdown": MarkdownReporter,
     "md": MarkdownReporter,
     "json": JSONReporter,
-    "html": HTMLReporter,
-"sarif": SarifReporter, 
+    "html": HTMLChartsReporter,  # 3.5任务：使用带图表的HTML报告器
+    "sarif": SarifReporter,  # 3.3任务：SARIF格式支持
 }
 
+def get_available_formats() -> list:
+    """获取可用的报告格式列表"""
+    return list(REPORTER_REGISTRY.keys())
 
 def get_reporter(format_type: str) -> BaseReporter:
     """
