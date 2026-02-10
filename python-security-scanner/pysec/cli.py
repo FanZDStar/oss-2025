@@ -3,7 +3,7 @@
 """
 命令行接口模块
 
-提供友好的命令行交互体验，支持5.5友好的错误信息功能、3.3 SARIF格式支持和3.4增量扫描功能
+提供友好的命令行交互体验，支持5.5友好的错误信息功能、3.3 SARIF格式支持,3.4增量扫描功能和6.5规则仓库功能
 """
 
 import argparse
@@ -120,7 +120,7 @@ class ErrorFormatter:
                     file_path = str(exception).split("'")[1] if "'" in str(exception) else "未知路径"
                     return f"{base_msg}: {file_path}"
                 elif isinstance(exception, SyntaxError):
-                    return f"{base_msg}（行 {exception.lineno}）：{exception.msg}"
+                    return f"{base_msg}（行 {exception.lineno}）：{exception.msg}")
                 elif isinstance(exception, PermissionError):
                     file_path = str(exception).split("'")[1] if "'" in str(exception) else "未知路径"
                     return f"{base_msg}: {file_path}"
@@ -311,6 +311,20 @@ def create_parser() -> argparse.ArgumentParser:
   pysec scan ./src -f sarif                # 生成SARIF格式报告 (3.3任务)
   pysec scan ./src --exclude tests,docs     # 排除目录
   
+  # 6.5规则仓库功能
+  pysec rules install community/aws-rules   # 安装社区规则
+  pysec rules install https://example.com/rule.py  # 从URL安装规则
+  pysec rules install ./my_rule.py          # 从本地文件安装规则
+  pysec rules list                          # 列出已安装规则
+  pysec rules update                        # 更新所有规则
+  pysec rules update community/aws-rules    # 更新指定规则
+  pysec rules search sql                    # 搜索社区规则
+  pysec rules uninstall community/aws-rules # 卸载规则
+  
+  # 其他命令
+  pysec rules                               # 列出所有内置规则
+  pysec rules --verbose                     # 显示规则详情
+  pysec version                             # 显示版本信息
   # 3.4增量扫描功能
   pysec scan . --incremental               # 增量扫描，智能检测修改的文件
   pysec scan . --changed-only              # 仅扫描Git修改的文件
@@ -338,6 +352,11 @@ SARIF格式支持 (3.3任务):
   • 支持生成符合SARIF 2.1.0标准的报告
   • 兼容GitHub Code Scanning和VS Code SARIF Viewer
 
+规则仓库功能 (6.5任务):
+  • 支持从外部加载规则（本地文件、URL、社区仓库）
+  • 社区规则仓库，支持搜索和安装社区规则
+  • 规则版本管理，支持更新检查
+  • 规则自动更新，支持更新所有或指定规则包
 增量扫描功能 (3.4任务):
   • 基于Git的增量扫描，只扫描修改过的文件
   • 文件修改时间缓存，避免重复扫描
@@ -464,7 +483,7 @@ SARIF格式支持 (3.3任务):
         help="禁用扫描历史记录（用于 HTML 报告趋势图）",
     )
 
-    # rules 命令
+    # rules 命令 (原有的列出规则命令)
     rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
     rules_parser.add_argument("--verbose", action="store_true", help="显示规则详细信息")
     rules_parser.add_argument(
@@ -473,8 +492,16 @@ SARIF格式支持 (3.3任务):
         help="禁用彩色输出",
     )
 
+    # 6.5任务：添加规则管理命令
+    try:
+        from .commands.rules import add_rules_parser
+        add_rules_parser(subparsers)
+    except ImportError as e:
+        # 如果导入失败，可能是commands模块不存在，继续执行
+        print(f" 无法加载规则管理命令: {e}", file=sys.stderr)
+
     # version 命令
-    subparsers.add_parser("version", help="显示版本信息")
+    version_parser = subparsers.add_parser("version", help="显示版本信息")
 
     return parser
 
@@ -960,6 +987,7 @@ def cmd_version(args):
         print("  • 支持扫描超时控制（5.4任务）")
         print("  • 友好的错误信息和调试模式（5.5任务）")
         print("  • SARIF格式报告支持（3.3任务）")
+        print("  • 规则仓库功能（6.5任务）")
         print("  • 增量扫描功能（3.4任务）")
         return 0
     except Exception as e:
@@ -999,8 +1027,19 @@ def main():
         elif args.command == "version":
             return cmd_version(args)
         else:
-            parser.print_help()
-            return 0
+            # 6.5任务：处理规则管理命令
+            # 检查是否是规则管理命令
+            if args.command in ["install", "uninstall", "list", "update", "search", "info"]:
+                try:
+                    from .commands.rules import main as rules_main
+                    return rules_main()
+                except ImportError as e:
+                    print(f"无法执行规则管理命令: {e}")
+                    print("  请确保已正确安装规则仓库功能模块")
+                    return 1
+            else:
+                parser.print_help()
+                return 0
     except KeyboardInterrupt:
         print("\n\n操作被用户中断。")
         return 130

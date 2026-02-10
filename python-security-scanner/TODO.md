@@ -592,10 +592,10 @@ pysec scan ./myproject
 **优先级:** 低  
 **预计工作量:** 3 小时
 
-- [ ] 支持从外部加载规则
-- [ ] 社区规则仓库
-- [ ] 规则版本管理
-- [ ] 规则自动更新
+- [x] 支持从外部加载规则
+- [x] 社区规则仓库
+- [x] 规则版本管理
+- [x] 规则自动更新
 
 ```bash
 pysec rules install community/aws-rules
