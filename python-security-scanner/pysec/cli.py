@@ -20,6 +20,7 @@ from .reporter import get_reporter, REPORTER_REGISTRY
 from .rules import list_rules, SecurityRule
 from .config import Config
 from .fixer import CodeFixer, get_fixer
+from .progress import ProgressBar
 from .colors import ColorSupport, header, bold, success, error, warning, info, severity_color, blue
 
 
@@ -421,6 +422,11 @@ SARIF格式支持 (3.3任务):
         action="store_true",
         help="禁用彩色输出（适用于不支持 ANSI 颜色的终端）",
     )
+    scan_parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="禁用进度条显示",
+    )
 
     # rules 命令
     rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
@@ -629,7 +635,24 @@ def cmd_scan(args):
                     print(" 没有检测到修改的 Python 文件")
                 return 0
         else:
-            result = scanner.scan(str(target))
+            # 创建进度条（仅在非静默、目录扫描时启用）
+            show_progress = (
+                not args.quiet
+                and not getattr(args, 'no_progress', False)
+                and target.is_dir()
+            )
+            progress = ProgressBar(total=0, enabled=show_progress)
+
+            def _progress_callback(current, total, file_path):
+                if show_progress and total > 0:
+                    progress.total = total
+                    progress.update(current, file_path)
+
+            result = scanner.scan(str(target), progress_callback=_progress_callback)
+
+            # 完成进度条
+            if show_progress:
+                progress.finish()
 
         if not args.quiet:
             print(success(f" 扫描完成! 耗时: {result.duration:.2f} 秒"))
