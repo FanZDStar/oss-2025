@@ -339,10 +339,10 @@ re2.match(pattern, user_input)
 **优先级:** 高  
 **预计工作量:** 2-3 小时
 
-- [ ] 实现 SARIF 2.1.0 格式输出
-- [ ] 支持 GitHub Code Scanning 集成
-- [ ] 支持 VS Code SARIF Viewer 插件
-- [ ] 包含规则元数据和帮助URI
+- [x] 实现 SARIF 2.1.0 格式输出
+- [x] 支持 GitHub Code Scanning 集成
+- [x] 支持 VS Code SARIF Viewer 插件
+- [x] 包含规则元数据和帮助URI
 
 ```bash
 pysec scan . -f sarif -o results.sarif
