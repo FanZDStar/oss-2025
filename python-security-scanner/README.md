@@ -280,6 +280,7 @@ python-security-scanner/
 ├── docs/                   # Documentation
 │   ├── API.md             # API documentation
 │   ├── RULE_GUIDE.md      # Rule development guide
+│   ├── AST_REFERENCE.md   # AST node types reference
 │   ├── BEST_PRACTICES.md  # Best practices
 │   └── FAQ.md             # Frequently asked questions
 ├── README.md              # This file
@@ -346,6 +347,7 @@ See [docs/RULE_GUIDE.md](docs/RULE_GUIDE.md) for detailed guide.
 
 - [API Documentation](docs/API.md) - Complete API reference
 - [Rule Development Guide](docs/RULE_GUIDE.md) - How to create custom rules
+- [AST Node Reference](docs/AST_REFERENCE.md) - Python AST node types reference
 - [Best Practices](docs/BEST_PRACTICES.md) - Security scanning best practices
 - [FAQ](docs/FAQ.md) - Frequently asked questions
 - [CONTRIBUTING](CONTRIBUTING.md) - Contribution guidelines
@@ -641,6 +643,7 @@ python-security-scanner/
 ├── docs/                   # 文档
 │   ├── API.md             # API 文档
 │   ├── RULE_GUIDE.md      # 规则开发指南
+│   ├── AST_REFERENCE.md   # AST 节点类型参考
 │   ├── BEST_PRACTICES.md  # 最佳实践
 │   └── FAQ.md             # 常见问题
 ├── README.md              # 本文件
@@ -707,6 +710,7 @@ class MyCustomRule(BaseRule):
 
 - [API 文档](docs/API.md) - 完整的 API 参考
 - [规则开发指南](docs/RULE_GUIDE.md) - 如何创建自定义规则
+- [AST 节点参考](docs/AST_REFERENCE.md) - Python AST 节点类型参考
 - [最佳实践](docs/BEST_PRACTICES.md) - 安全扫描最佳实践
 - [常见问题](docs/FAQ.md) - 常见问题解答
 - [贡献指南](CONTRIBUTING.md) - 贡献指南
