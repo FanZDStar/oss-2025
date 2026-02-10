@@ -353,9 +353,9 @@ pysec scan . -f sarif -o results.sarif
 **优先级:** 中  
 **预计工作量:** 1.5 小时
 
-- [ ] 实现 JUnit XML 格式输出
-- [ ] 支持 Jenkins 等 CI 系统集成
-- [ ] 每个漏洞作为一个测试用例
+- [x] 实现 JUnit XML 格式输出
+- [x] 支持 Jenkins 等 CI 系统集成
+- [x] 每个漏洞作为一个测试用例
 
 ```bash
 pysec scan . -f junit -o results.xml
