@@ -3,7 +3,7 @@
 """
 命令行接口模块
 
-提供友好的命令行交互体验，支持5.5友好的错误信息功能和3.3 SARIF格式支持
+提供友好的命令行交互体验，支持5.5友好的错误信息功能、3.3 SARIF格式支持和3.4增量扫描功能
 """
 
 import argparse
@@ -310,11 +310,18 @@ def create_parser() -> argparse.ArgumentParser:
   pysec scan ./src -o report.md -f markdown # 生成Markdown报告
   pysec scan ./src -f sarif                # 生成SARIF格式报告 (3.3任务)
   pysec scan ./src --exclude tests,docs     # 排除目录
-  pysec scan . --changed-only               # 仅扫描Git修改的文件
-  pysec scan . --since HEAD~5               # 扫描最近5次提交修改的文件
-  pysec scan . --since main                 # 扫描结main分支不同的文件
-  pysec rules                               # 列出所有规则
-  pysec rules --verbose                     # 显示规则详情
+  
+  # 3.4增量扫描功能
+  pysec scan . --incremental               # 增量扫描，智能检测修改的文件
+  pysec scan . --changed-only              # 仅扫描Git修改的文件
+  pysec scan . --since HEAD~5              # 扫描最近5次提交修改的文件
+  pysec scan . --since 1.day.ago           # 扫描最近1天修改的文件
+  pysec scan . --full-scan                 # 强制完整扫描
+  pysec scan . --clear-cache               # 清除增量扫描缓存
+  
+  # 其他命令
+  pysec rules                              # 列出所有规则
+  pysec rules --verbose                    # 显示规则详情
 
 详细级别控制:
   -v         显示基础信息（默认）
@@ -330,6 +337,12 @@ def create_parser() -> argparse.ArgumentParser:
 SARIF格式支持 (3.3任务):
   • 支持生成符合SARIF 2.1.0标准的报告
   • 兼容GitHub Code Scanning和VS Code SARIF Viewer
+
+增量扫描功能 (3.4任务):
+  • 基于Git的增量扫描，只扫描修改过的文件
+  • 文件修改时间缓存，避免重复扫描
+  • 智能跳过未修改文件，直接使用缓存结果
+  • 与完整扫描无缝切换
         """,
     )
 
@@ -372,17 +385,35 @@ SARIF格式支持 (3.3任务):
     )
     
     scan_parser.add_argument("-q", "--quiet", action="store_true", help="静默模式，仅输出报告")
+    
+    # 3.4任务：添加增量扫描参数
+    scan_parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="启用增量扫描模式，只扫描修改过的文件（3.4任务）"
+    )
     scan_parser.add_argument(
         "--changed-only",
         action="store_true",
-        help="仅扫描自上次提交以来修改的文件（需在Git仓库中使用）",
+        help="仅扫描Git修改的文件（等同于 --incremental --since HEAD）"
     )
     scan_parser.add_argument(
         "--since",
         type=str,
         default=None,
-        help="扫描自指定提交/分支以来修改的文件（如: HEAD~5, main, abc123）",
+        help="扫描自指定时间以来修改的文件（如: HEAD~5, main, 1.day.ago, 2.hours.ago）"
     )
+    scan_parser.add_argument(
+        "--full-scan",
+        action="store_true",
+        help="强制完整扫描，忽略增量模式（3.4任务）"
+    )
+    scan_parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="清除增量扫描缓存（3.4任务）"
+    )
+    
     scan_parser.add_argument(
         "--no-cache",
         action="store_true",
@@ -481,6 +512,15 @@ def cmd_scan(args):
         return 1
 
     try:
+        # 检查是否清除缓存
+        if args.clear_cache:
+            from .incremental import FileHashCache
+            cache = FileHashCache()
+            cache.clear_cache()
+            if not args.quiet:
+                print(" 已清除增量扫描缓存")
+            return 0
+
         # 加载配置文件
         loaded_config = None
 
@@ -583,6 +623,19 @@ def cmd_scan(args):
             print("=" * 50)
             print(f"{bold('扫描目标:')} {target.absolute()}")
             print(f"{bold('启用规则:')} {len(scanner.get_rules())} 个")
+            
+            # 3.4任务：显示扫描模式
+            scan_mode = "完整扫描"
+            if args.full_scan:
+                scan_mode = "强制完整扫描"
+            elif args.incremental or args.changed_only or args.since:
+                scan_mode = "增量扫描"
+                if args.since:
+                    scan_mode += f" (自 {args.since} 以来)"
+                elif args.changed_only:
+                    scan_mode += " (仅Git修改的文件)"
+            print(f"{bold('扫描模式:')} {info(scan_mode)}")
+            
             if args.verbose >= 1:
                 if args.timeout:
                     print(f"{bold('总超时:')} {args.timeout}秒")
@@ -590,71 +643,68 @@ def cmd_scan(args):
                     print(f"{bold('文件超时:')} {args.file_timeout}秒")
                 if scan_config.exclude_patterns:
                     print(f"{bold('排除目录:')} {', '.join(scan_config.exclude_patterns)}")
-            if hasattr(args, "changed_only") and args.changed_only:
-                print(f"{bold('扫描模式:')} {info('增量扫描（仅扫描Git修改的文件）')}")
-            elif hasattr(args, "since") and args.since:
-                print(f"{bold('扫描模式:')} {info(f'增量扫描（自 {args.since} 以来修改的文件）')}")
             print("-" * 50)
 
         # 执行扫描
         if args.verbose >= 1 and not args.quiet:
             print("开始扫描...")
 
-        # 根据参数选择扫描模式
-        if hasattr(args, "since") and args.since:
-            # 使用 --since 参数的增量扫描
-            result = scanner.scan_since(str(target), args.since)
-            # 检查是否有错误
-            if result.errors:
-                for err_msg in result.errors:
-                    if "Git 仓库" in err_msg or "Git 引用" in err_msg:
-                        if args.verbose >= 1:
-                            context = {"git_error": True, "since": args.since}
-                            handle_command_error(RuntimeError(err_msg), "scan", args.verbose, context)
-                        else:
-                            print(error(f" {err_msg}"), file=sys.stderr)
-                            print(" 建议: 检查当前目录是否为Git仓库，或移除 --since 参数", file=sys.stderr)
-                        return 1
-            if result.files_scanned == 0 and not result.errors:
+        # 3.4任务：根据参数选择扫描模式
+        if args.full_scan:
+            # 强制完整扫描
+            if not args.quiet:
+                print(" 执行强制完整扫描")
+            result = scanner.scan(str(target))
+            
+        elif args.incremental or args.changed_only or args.since:
+            # 增量扫描模式
+            if not args.quiet:
+                mode_desc = "增量扫描"
+                if args.since:
+                    mode_desc = f"增量扫描 (自 {args.since} 以来)"
+                elif args.changed_only:
+                    mode_desc = "增量扫描 (仅Git修改的文件)"
+                print(f" 执行{mode_desc}")
+            
+            # 确定since参数
+            since_param = args.since
+            if args.changed_only and not args.since:
+                since_param = "HEAD"
+            
+            # 检查扫描器是否支持增量扫描
+            if hasattr(scanner, 'scan_incremental'):
+                try:
+                    result = scanner.scan_incremental(str(target), since_param)
+                except Exception as e:
+                    if args.verbose >= 1:
+                        print(f"  增量扫描失败: {e}")
+                        print("  回退到完整扫描")
+                    result = scanner.scan(str(target))
+            elif hasattr(scanner, 'scan_changed') and args.changed_only:
+                result = scanner.scan_changed(str(target))
+            elif hasattr(scanner, 'scan_since') and args.since:
+                result = scanner.scan_since(str(target), args.since)
+            else:
                 if not args.quiet:
-                    print(f" 没有检测到自 {args.since} 以来修改的 Python 文件")
-                return 0
-        elif hasattr(args, "changed_only") and args.changed_only:
-            result = scanner.scan_changed(str(target))
-            # 检查是否有错误（如不是Git仓库）
-            if result.errors and any("Git 仓库" in e for e in result.errors):
-                if args.verbose >= 1:
-                    context = {"git_error": True}
-                    handle_command_error(RuntimeError(result.errors[0]), "scan", args.verbose, context)
-                else:
-                    print(error(f" {result.errors[0]}"), file=sys.stderr)
-                    print(" 建议: 检查当前目录是否为Git仓库，或移除 --changed-only 参数", file=sys.stderr)
-                return 1
-            if result.files_scanned == 0 and not result.errors:
-                if not args.quiet:
-                    print(" 没有检测到修改的 Python 文件")
-                return 0
+                    print("  扫描器不支持增量扫描，回退到完整扫描")
+                result = scanner.scan(str(target))
+                
         else:
-            # 创建进度条（仅在非静默、目录扫描时启用）
-            show_progress = (
-                not args.quiet
-                and not getattr(args, 'no_progress', False)
-                and target.is_dir()
-            )
-            progress = ProgressBar(total=0, enabled=show_progress)
-
-            def _progress_callback(current, total, file_path):
-                if show_progress and total > 0:
-                    progress.total = total
-                    progress.update(current, file_path)
-
-            result = scanner.scan(str(target), progress_callback=_progress_callback)
-
-            # 完成进度条
-            if show_progress:
-                progress.finish()
+            # 默认完整扫描
+            result = scanner.scan(str(target))
 
         if not args.quiet:
+            # 3.4任务：显示增量扫描统计（如果可用）
+            if hasattr(result, 'scan_stats'):
+                stats = result.scan_stats
+                if stats:
+                    print(f" 增量扫描统计:")
+                    print(f"   总文件数: {stats.get('total_files', 0)}")
+                    print(f"   实际扫描: {stats.get('scanned_files', 0)}")
+                    print(f"   缓存命中: {stats.get('cached_files', 0)}")
+                    if 'cache_hit_rate' in stats:
+                        print(f"   缓存命中率: {stats.get('cache_hit_rate', 0):.1%}")
+            
             print(success(f" 扫描完成! 耗时: {result.duration:.2f} 秒"))
             print(f"{bold('扫描文件:')} {result.files_scanned} 个")
             
@@ -894,6 +944,7 @@ def cmd_version(args):
         print("  • 支持扫描超时控制（5.4任务）")
         print("  • 友好的错误信息和调试模式（5.5任务）")
         print("  • SARIF格式报告支持（3.3任务）")
+        print("  • 增量扫描功能（3.4任务）")
         return 0
     except Exception as e:
         handle_command_error(e, "version", 0)
