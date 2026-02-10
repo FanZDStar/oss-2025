@@ -343,10 +343,10 @@ SARIF格式支持 (3.3任务):
         "-f",
         "--format",
         type=str,
-        # 添加 SARIF 格式支持 (3.3任务)
-        choices=["text", "json", "markdown", "sarif"],
+        # 添加 SARIF 格式支持 (3.3任务) 和 HTML 格式支持 (含统计仪表盘)
+        choices=["text", "json", "markdown", "html", "sarif"],
         default="text",
-        help="报告输出格式 (默认: text)，支持: text, json, markdown, sarif"
+        help="报告输出格式 (默认: text)，支持: text, json, markdown, html, sarif"
     )
     scan_parser.add_argument("-c", "--config", type=str, default=None, help="指定配置文件路径")
     scan_parser.add_argument(
@@ -426,6 +426,11 @@ SARIF格式支持 (3.3任务):
         "--no-progress",
         action="store_true",
         help="禁用进度条显示",
+    )
+    scan_parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="禁用扫描历史记录（用于 HTML 报告趋势图）",
     )
 
     # rules 命令
@@ -691,7 +696,18 @@ def cmd_scan(args):
             )
 
         # 生成报告
-        reporter = get_reporter(args.format)
+        scan_history_data = []
+        if args.format == "html" and not getattr(args, 'no_history', False):
+            try:
+                from .scan_history import ScanHistory
+                history = ScanHistory()
+                # 先保存当前扫描记录
+                history.save(result)
+                # 加载历史数据用于趋势图
+                scan_history_data = history.get_recent(10)
+            except Exception:
+                pass  # 历史记录功能不影响报告生成
+        reporter = get_reporter(args.format, scan_history=scan_history_data)
         report = reporter.generate(result)
 
         # 输出报告

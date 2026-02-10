@@ -251,7 +251,7 @@ class JSONReporter(BaseReporter):
 
 
 class HTMLReporter(BaseReporter):
-    """HTML格式报告生成器"""
+    """HTML格式报告生成器（含统计仪表盘）"""
 
     SEVERITY_COLORS = {
         "critical": "#dc3545",
@@ -260,8 +260,71 @@ class HTMLReporter(BaseReporter):
         "low": "#28a745",
     }
 
+    def __init__(self, scan_history=None):
+        """
+        初始化 HTML 报告生成器
+
+        Args:
+            scan_history: 可选的扫描历史记录列表（ScanSummary 对象），用于趋势图
+        """
+        self.scan_history = scan_history or []
+
+    def _build_type_data(self, vulnerabilities):
+        """按漏洞类型（rule_id）分组统计"""
+        type_counts = {}
+        for vuln in vulnerabilities:
+            label = f"{vuln.rule_id}"
+            type_counts[label] = type_counts.get(label, 0) + 1
+        # 按数量降序排列
+        sorted_items = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+        return [item[0] for item in sorted_items], [item[1] for item in sorted_items]
+
+    def _build_file_data(self, vulnerabilities, top_n=10):
+        """按文件分组统计漏洞数量（取 Top N）"""
+        import os
+        file_counts = {}
+        for vuln in vulnerabilities:
+            # 使用文件名（不含完整路径）以节省空间
+            basename = os.path.basename(vuln.file_path)
+            file_counts[basename] = file_counts.get(basename, 0) + 1
+        sorted_items = sorted(file_counts.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        return [item[0] for item in sorted_items], [item[1] for item in sorted_items]
+
+    def _build_trend_data(self):
+        """构建趋势数据（来自 scan_history）"""
+        if not self.scan_history:
+            return [], [], [], [], []
+        labels = []
+        critical_data = []
+        high_data = []
+        medium_data = []
+        low_data = []
+        for record in self.scan_history:
+            # 如果是 ScanSummary 对象
+            if hasattr(record, 'scan_time'):
+                time_str = record.scan_time
+                labels.append(time_str[:10] if len(time_str) >= 10 else time_str)
+                critical_data.append(record.critical)
+                high_data.append(record.high)
+                medium_data.append(record.medium)
+                low_data.append(record.low)
+            # 如果是字典
+            elif isinstance(record, dict):
+                time_str = record.get('scan_time', '')
+                labels.append(time_str[:10] if len(time_str) >= 10 else time_str)
+                critical_data.append(record.get('critical', 0))
+                high_data.append(record.get('high', 0))
+                medium_data.append(record.get('medium', 0))
+                low_data.append(record.get('low', 0))
+        return labels, critical_data, high_data, medium_data, low_data
+
     def generate(self, result: ScanResult) -> str:
         summary = result.summary
+
+        # 构建图表数据
+        type_labels, type_values = self._build_type_data(result.vulnerabilities)
+        file_labels, file_values = self._build_file_data(result.vulnerabilities)
+        trend_labels, trend_critical, trend_high, trend_medium, trend_low = self._build_trend_data()
 
         # 生成漏洞HTML
         vulns_html = ""
@@ -292,35 +355,50 @@ class HTMLReporter(BaseReporter):
         else:
             vulns_html = '<div class="success-msg">✅ 未发现安全漏洞</div>'
 
+        # 趋势图 HTML（仅在有历史数据时显示）
+        trend_chart_html = ""
+        if trend_labels:
+            trend_chart_html = """
+            <div class="chart-card">
+                <h3>📈 扫描趋势对比</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+            """
+
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PySecScanner 安全扫描报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
+        * {{ box-sizing: border-box; }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }}
         .container {{
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            padding: 40px;
         }}
         h1 {{
-            color: #333;
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 10px;
+            color: #1a1a2e;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            font-size: 1.8em;
         }}
         h2 {{
-            color: #555;
-            margin-top: 30px;
+            color: #333;
+            margin-top: 35px;
+            font-size: 1.4em;
         }}
         .info-table {{
             width: 100%;
@@ -328,13 +406,15 @@ class HTMLReporter(BaseReporter):
             margin: 20px 0;
         }}
         .info-table th, .info-table td {{
-            padding: 12px;
+            padding: 12px 16px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #eee;
         }}
         .info-table th {{
             background: #f8f9fa;
             width: 150px;
+            font-weight: 600;
+            color: #555;
         }}
         .summary-grid {{
             display: grid;
@@ -345,70 +425,105 @@ class HTMLReporter(BaseReporter):
         .summary-card {{
             text-align: center;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             color: white;
+            transition: transform 0.2s;
         }}
-        .summary-card.critical {{ background: {self.SEVERITY_COLORS['critical']}; }}
-        .summary-card.high {{ background: {self.SEVERITY_COLORS['high']}; }}
-        .summary-card.medium {{ background: {self.SEVERITY_COLORS['medium']}; color: #333; }}
-        .summary-card.low {{ background: {self.SEVERITY_COLORS['low']}; }}
+        .summary-card:hover {{ transform: translateY(-3px); }}
+        .summary-card.critical {{ background: linear-gradient(135deg, #dc3545, #c82333); }}
+        .summary-card.high {{ background: linear-gradient(135deg, #fd7e14, #e8590c); }}
+        .summary-card.medium {{ background: linear-gradient(135deg, #ffc107, #e0a800); color: #333; }}
+        .summary-card.low {{ background: linear-gradient(135deg, #28a745, #1e7e34); }}
         .summary-card .count {{
             font-size: 2.5em;
             font-weight: bold;
         }}
+        /* Dashboard 图表区域 */
+        .dashboard-grid {{
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 25px 0;
+        }}
+        @media (max-width: 768px) {{
+            .dashboard-grid {{ grid-template-columns: 1fr; }}
+        }}
+        .chart-card {{
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }}
+        .chart-card h3 {{
+            margin: 0 0 15px 0;
+            color: #444;
+            font-size: 1.05em;
+            text-align: center;
+        }}
+        .chart-card canvas {{
+            max-height: 300px;
+        }}
         .vuln-card {{
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
             margin: 15px 0;
             overflow: hidden;
+            transition: box-shadow 0.2s;
         }}
+        .vuln-card:hover {{ box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
         .vuln-header {{
             background: #f8f9fa;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
         }}
         .vuln-body {{
-            padding: 15px;
+            padding: 15px 20px;
         }}
         .severity-badge {{
             display: inline-block;
-            padding: 3px 10px;
-            border-radius: 4px;
+            padding: 3px 12px;
+            border-radius: 20px;
             color: white;
             font-size: 0.8em;
+            font-weight: 600;
             margin-right: 10px;
+            letter-spacing: 0.5px;
         }}
         pre {{
-            background: #2d2d2d;
-            color: #f8f8f2;
+            background: #1e1e2e;
+            color: #cdd6f4;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 8px;
             overflow-x: auto;
+            font-size: 0.9em;
         }}
         code {{
-            font-family: 'Fira Code', 'Consolas', monospace;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
         }}
         .success-msg {{
-            background: #d4edda;
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
             color: #155724;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 25px;
+            border-radius: 10px;
             text-align: center;
             font-size: 1.2em;
+            font-weight: 500;
         }}
         .footer {{
             text-align: center;
-            color: #666;
-            margin-top: 30px;
+            color: #888;
+            margin-top: 35px;
             padding-top: 20px;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
         }}
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🛡️ PySecScanner 安全扫描报告</h1>
-        
+
         <h2>📋 扫描信息</h2>
         <table class="info-table">
             <tr><th>扫描目标</th><td><code>{result.target}</code></td></tr>
@@ -416,7 +531,7 @@ class HTMLReporter(BaseReporter):
             <tr><th>扫描耗时</th><td>{result.duration:.2f} 秒</td></tr>
             <tr><th>扫描文件数</th><td>{result.files_scanned}</td></tr>
         </table>
-        
+
         <h2>📊 漏洞统计</h2>
         <div class="summary-grid">
             <div class="summary-card critical">
@@ -438,14 +553,166 @@ class HTMLReporter(BaseReporter):
         </div>
         {f'<p style="text-align: center; color: #666;">⏭️ 已忽略 {summary["ignored"]} 个漏洞（通过 pysec: ignore 注释）</p>' if summary.get('ignored', 0) > 0 else ''}
         {f'<p style="text-align: center; color: #666;">🔽 已过滤 {summary["filtered"]} 个漏洞（低于最小严重程度）</p>' if summary.get('filtered', 0) > 0 else ''}
-        
+
+        <h2>📈 统计仪表盘</h2>
+        <div class="dashboard-grid">
+            <div class="chart-card">
+                <h3>🎯 严重程度分布</h3>
+                <canvas id="severityChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📋 漏洞类型分布</h3>
+                <canvas id="typeChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🔥 文件漏洞热力图</h3>
+                <canvas id="fileChart"></canvas>
+            </div>
+            {trend_chart_html}
+        </div>
+
         <h2>🔍 漏洞详情</h2>
         {vulns_html}
-        
+
         <div class="footer">
             <p>报告由 PySecScanner v1.0.0 生成 | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         </div>
     </div>
+
+    <script>
+    // === 严重程度分布环形图 ===
+    new Chart(document.getElementById('severityChart'), {{
+        type: 'doughnut',
+        data: {{
+            labels: ['严重 (Critical)', '高危 (High)', '中危 (Medium)', '低危 (Low)'],
+            datasets: [{{
+                data: [{summary['critical']}, {summary['high']}, {summary['medium']}, {summary['low']}],
+                backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#28a745'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            plugins: {{
+                legend: {{ position: 'bottom', labels: {{ padding: 15 }} }}
+            }},
+            cutout: '55%'
+        }}
+    }});
+
+    // === 漏洞类型分布柱状图 ===
+    new Chart(document.getElementById('typeChart'), {{
+        type: 'bar',
+        data: {{
+            labels: {json.dumps(type_labels, ensure_ascii=False)},
+            datasets: [{{
+                label: '漏洞数量',
+                data: {json.dumps(type_values)},
+                backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                borderColor: '#667eea',
+                borderWidth: 1,
+                borderRadius: 4
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            plugins: {{
+                legend: {{ display: false }}
+            }},
+            scales: {{
+                y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }},
+                x: {{ ticks: {{ maxRotation: 45 }} }}
+            }}
+        }}
+    }});
+
+    // === 文件漏洞热力图（横向柱状图）===
+    new Chart(document.getElementById('fileChart'), {{
+        type: 'bar',
+        data: {{
+            labels: {json.dumps(file_labels, ensure_ascii=False)},
+            datasets: [{{
+                label: '漏洞数量',
+                data: {json.dumps(file_values)},
+                backgroundColor: (ctx) => {{
+                    const max = Math.max(...{json.dumps(file_values)}, 1);
+                    const ratio = ctx.raw / max;
+                    const r = Math.round(40 + ratio * 180);
+                    const g = Math.round(167 - ratio * 130);
+                    const b = Math.round(69 - ratio * 30);
+                    return `rgba(${{r}}, ${{g}}, ${{b}}, 0.8)`;
+                }},
+                borderRadius: 4
+            }}]
+        }},
+        options: {{
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {{
+                legend: {{ display: false }}
+            }},
+            scales: {{
+                x: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }}
+            }}
+        }}
+    }});
+
+    // === 趋势对比折线图 ===
+    {f"""
+    if (document.getElementById('trendChart')) {{
+        new Chart(document.getElementById('trendChart'), {{
+            type: 'line',
+            data: {{
+                labels: {json.dumps(trend_labels, ensure_ascii=False)},
+                datasets: [
+                    {{
+                        label: '严重',
+                        data: {json.dumps(trend_critical)},
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220,53,69,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }},
+                    {{
+                        label: '高危',
+                        data: {json.dumps(trend_high)},
+                        borderColor: '#fd7e14',
+                        backgroundColor: 'rgba(253,126,20,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }},
+                    {{
+                        label: '中危',
+                        data: {json.dumps(trend_medium)},
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255,193,7,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }},
+                    {{
+                        label: '低危',
+                        data: {json.dumps(trend_low)},
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40,167,69,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                plugins: {{
+                    legend: {{ position: 'bottom' }}
+                }},
+                scales: {{
+                    y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }}
+                }}
+            }}
+        }});
+    }}
+    """ if trend_labels else "// 无历史数据，跳过趋势图"}
+    </script>
 </body>
 </html>"""
 
@@ -471,12 +738,13 @@ if SarifReporter is not None:
     REPORTER_REGISTRY["sarif"] = SarifReporter
 
 
-def get_reporter(format_type: str) -> BaseReporter:
+def get_reporter(format_type: str, **kwargs) -> BaseReporter:
     """
     获取报告生成器实例
 
     Args:
         format_type: 报告格式 (text/markdown/json/html)
+        **kwargs: 传递给报告生成器的额外参数（如 scan_history）
 
     Returns:
         报告生成器实例
@@ -484,4 +752,9 @@ def get_reporter(format_type: str) -> BaseReporter:
     reporter_class = REPORTER_REGISTRY.get(format_type.lower())
     if reporter_class is None:
         raise ValueError(f"不支持的报告格式: {format_type}")
-    return reporter_class()
+    # 仅将 kwargs 传递给支持它们的报告生成器
+    import inspect
+    sig = inspect.signature(reporter_class.__init__)
+    filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    return reporter_class(**filtered_kwargs)
+

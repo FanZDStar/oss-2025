@@ -6,6 +6,9 @@
 
 from .base import BaseRule, RULE_REGISTRY, register_rule
 
+# 兼容别名：部分模块使用 SecurityRule 名称引用 BaseRule
+SecurityRule = BaseRule
+
 # 导入所有规则模块，触发规则注册
 from . import sql_injection
 from . import command_injection
