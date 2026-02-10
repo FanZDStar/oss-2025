@@ -459,6 +459,7 @@ REPORTER_REGISTRY: Dict[str, Type[BaseReporter]] = {
     "md": MarkdownReporter,
     "json": JSONReporter,
     "html": HTMLReporter,
+"sarif": SarifReporter, 
 }
 
 
