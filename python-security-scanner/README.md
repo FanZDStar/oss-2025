@@ -67,13 +67,10 @@ python main.py scan ./src -o report.html -f html
 python main.py scan ./src --exclude tests,docs,venv
 
 # Filter by minimum severity
-python main.py scan ./src --min-severity high
+python main.py scan ./src --severity high
 
 # Disable colored output
 python main.py scan ./src --no-color
-
-# List all rules
-python main.py rules --verbose
 ```
 
 #### Incremental Scanning (Git)
@@ -430,13 +427,10 @@ python main.py scan ./src -o report.html -f html
 python main.py scan ./src --exclude tests,docs,venv
 
 # 按最低严重级别过滤
-python main.py scan ./src --min-severity high
+python main.py scan ./src --severity high
 
 # 禁用彩色输出
 python main.py scan ./src --no-color
-
-# 查看所有规则
-python main.py rules --verbose
 ```
 
 #### 增量扫描(Git)
