@@ -148,7 +148,7 @@ result = scanner.scan_since("./your_project", "main")
 | LOG001  | Sensitive Log Info| Medium   | Detects logging of passwords, tokens, etc.         |
 | SSRF001 | SSRF Vulnerability| High     | Detects server-side request forgery vulnerabilities |
 | XXE001  | XXE Vulnerability | High     | Detects XML external entity injection risks        |
-| REDOS001| ReDoS Pattern    | Medium   | Detects regex patterns vulnerable to ReDoS attacks |
+| REX001  | ReDoS Pattern    | Medium   | Detects regex patterns vulnerable to ReDoS attacks |
 
 #### Framework-Specific Rules
 
@@ -511,7 +511,7 @@ result = scanner.scan_since("./your_project", "main")
 | LOG001  | 日志敏感信息检测   | Medium   | 检测日志记录密码、令牌等敏感信息            |
 | SSRF001 | SSRF漏洞检测      | High     | 检测服务端请求伪造漏洞                      |
 | XXE001  | XXE漏洞检测       | High     | 检测 XML 外部实体注入风险                    |
-| REDOS001| ReDoS模式检测     | Medium   | 检测易受 ReDoS 攻击的正则表达式模式         |
+| REX001  | ReDoS模式检测     | Medium   | 检测易受 ReDoS 攻击的正则表达式模式         |
 
 #### 框架特定规则
 

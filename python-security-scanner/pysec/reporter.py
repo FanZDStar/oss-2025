@@ -658,59 +658,59 @@ class HTMLReporter(BaseReporter):
     }});
 
     // === 趋势对比折线图 ===
-    {f"""
-    if (document.getElementById('trendChart')) {{
-        new Chart(document.getElementById('trendChart'), {{
+    {f'''
+    if (document.getElementById('trendChart')) {{{{
+        new Chart(document.getElementById('trendChart'), {{{{
             type: 'line',
-            data: {{
+            data: {{{{
                 labels: {json.dumps(trend_labels, ensure_ascii=False)},
                 datasets: [
-                    {{
+                    {{{{
                         label: '严重',
                         data: {json.dumps(trend_critical)},
                         borderColor: '#dc3545',
                         backgroundColor: 'rgba(220,53,69,0.1)',
                         fill: true,
                         tension: 0.3
-                    }},
-                    {{
+                    }}}},
+                    {{{{
                         label: '高危',
                         data: {json.dumps(trend_high)},
                         borderColor: '#fd7e14',
                         backgroundColor: 'rgba(253,126,20,0.1)',
                         fill: true,
                         tension: 0.3
-                    }},
-                    {{
+                    }}}},
+                    {{{{
                         label: '中危',
                         data: {json.dumps(trend_medium)},
                         borderColor: '#ffc107',
                         backgroundColor: 'rgba(255,193,7,0.1)',
                         fill: true,
                         tension: 0.3
-                    }},
-                    {{
+                    }}}},
+                    {{{{
                         label: '低危',
                         data: {json.dumps(trend_low)},
                         borderColor: '#28a745',
                         backgroundColor: 'rgba(40,167,69,0.1)',
                         fill: true,
                         tension: 0.3
-                    }}
+                    }}}}
                 ]
-            }},
-            options: {{
+            }}}},
+            options: {{{{
                 responsive: true,
-                plugins: {{
-                    legend: {{ position: 'bottom' }}
-                }},
-                scales: {{
-                    y: {{ beginAtZero: true, ticks: {{ stepSize: 1 }} }}
-                }}
-            }}
-        }});
-    }}
-    """ if trend_labels else "// 无历史数据，跳过趋势图"}
+                plugins: {{{{
+                    legend: {{{{ position: 'bottom' }}}}
+                }}}},
+                scales: {{{{
+                    y: {{{{ beginAtZero: true, ticks: {{{{ stepSize: 1 }}}} }}}}
+                }}}}
+            }}}}
+        }}}});
+    }}}}
+    ''' if trend_labels else "// 无历史数据，跳过趋势图"}
     </script>
 </body>
 </html>"""

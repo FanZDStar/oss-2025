@@ -1,5 +1,11 @@
 # progress.py
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    HAS_TQDM = False
+    tqdm = None
+
 import os
 import sys
 import time
@@ -90,6 +96,11 @@ class ScanProgressBar:
         if self.disable:
             return
         
+        if not HAS_TQDM:
+            # Fallback: 简单文本进度
+            print(f"开始扫描 {self.total} 个文件...")
+            return
+        
         # 配置进度条样式（整合颜色和ETA）
         bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
         if ColorSupport.is_enabled():
@@ -105,7 +116,11 @@ class ScanProgressBar:
     
     def update(self, current_file: str, step: int = 1) -> None:
         """更新进度条（显示截断后的文件名+ETA）"""
-        if self.disable or not self.pbar:
+        if self.disable:
+            return
+        
+        if not HAS_TQDM or not self.pbar:
+            # Fallback: 简单文本进度
             return
         
         # 显示当前扫描的文件名（截断过长路径）
@@ -129,8 +144,14 @@ class ScanProgressBar:
     
     def finish(self) -> None:
         """结束进度条"""
-        if self.disable or not self.pbar:
+        if self.disable:
             return
+        
+        if not HAS_TQDM or not self.pbar:
+            # Fallback: 简单文本完成提示
+            print(f"扫描完成")
+            return
+            
         self.pbar.close()
 
 # 便捷装饰器：为扫描函数添加进度条
@@ -161,6 +182,9 @@ def with_progress_bar(func: Callable) -> Callable:
             progress.finish()
     
     return wrapper
+
+# 向后兼容别名
+ProgressBar = ScanProgressBar
 
 # 独立使用示例
 if __name__ == "__main__":

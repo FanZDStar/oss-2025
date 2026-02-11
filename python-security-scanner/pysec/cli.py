@@ -120,7 +120,7 @@ class ErrorFormatter:
                     file_path = str(exception).split("'")[1] if "'" in str(exception) else "未知路径"
                     return f"{base_msg}: {file_path}"
                 elif isinstance(exception, SyntaxError):
-                    return f"{base_msg}（行 {exception.lineno}）：{exception.msg}")
+                    return f"{base_msg}（行 {exception.lineno}）：{exception.msg}"
                 elif isinstance(exception, PermissionError):
                     file_path = str(exception).split("'")[1] if "'" in str(exception) else "未知路径"
                     return f"{base_msg}: {file_path}"
@@ -483,22 +483,21 @@ SARIF格式支持 (3.3任务):
         help="禁用扫描历史记录（用于 HTML 报告趋势图）",
     )
 
-    # rules 命令 (原有的列出规则命令)
-    rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
-    rules_parser.add_argument("--verbose", action="store_true", help="显示规则详细信息")
-    rules_parser.add_argument(
-        "--no-color",
-        action="store_true",
-        help="禁用彩色输出",
-    )
-
     # 6.5任务：添加规则管理命令
     try:
         from .commands.rules import add_rules_parser
         add_rules_parser(subparsers)
     except ImportError as e:
-        # 如果导入失败，可能是commands模块不存在，继续执行
-        print(f" 无法加载规则管理命令: {e}", file=sys.stderr)
+        # 如果导入失败，fallback到简单的规则列表命令
+        print(f"⚠ 无法加载高级规则管理命令，使用简化版本: {e}", file=sys.stderr)
+        # rules 命令 (简化的列出规则命令)
+        rules_parser = subparsers.add_parser("rules", help="列出所有检测规则")
+        rules_parser.add_argument("--verbose", action="store_true", help="显示规则详细信息")
+        rules_parser.add_argument(
+            "--no-color",
+            action="store_true",
+            help="禁用彩色输出",
+        )
 
     # version 命令
     version_parser = subparsers.add_parser("version", help="显示版本信息")
@@ -1023,23 +1022,17 @@ def main():
         if args.command == "scan":
             return cmd_scan(args)
         elif args.command == "rules":
-            return cmd_rules(args)
+            # 检查是否有自定义的func（来自commands/rules.py）
+            if hasattr(args, 'func'):
+                return args.func(args)
+            else:
+                # 使用简单的规则列表命令（fallback）
+                return cmd_rules(args)
         elif args.command == "version":
             return cmd_version(args)
         else:
-            # 6.5任务：处理规则管理命令
-            # 检查是否是规则管理命令
-            if args.command in ["install", "uninstall", "list", "update", "search", "info"]:
-                try:
-                    from .commands.rules import main as rules_main
-                    return rules_main()
-                except ImportError as e:
-                    print(f"无法执行规则管理命令: {e}")
-                    print("  请确保已正确安装规则仓库功能模块")
-                    return 1
-            else:
-                parser.print_help()
-                return 0
+            parser.print_help()
+            return 0
     except KeyboardInterrupt:
         print("\n\n操作被用户中断。")
         return 130
