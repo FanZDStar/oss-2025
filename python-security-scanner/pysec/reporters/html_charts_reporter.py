@@ -7,6 +7,7 @@ HTML图表报告器
 """
 
 import os
+import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path

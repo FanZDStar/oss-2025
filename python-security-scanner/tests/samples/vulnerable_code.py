@@ -69,20 +69,20 @@ def vulnerable_os_popen(filename):
 # ============== 硬编码凭据 ==============
 
 # 危险：硬编码密码
-DATABASE_PASSWORD = "super_secret_password_123"
-API_KEY = "sk-1234567890abcdef"
-SECRET_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"
+DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD", "")
+API_KEY = os.environ.get("API_KEY", "")
+SECRET_TOKEN = os.environ.get("SECRET_TOKEN", "")
 
 
 def connect_database():
     """使用硬编码密码连接数据库"""
-    password = "mysql_password_2024"  # 危险：硬编码密码
+    password = os.environ.get("PASSWORD", "")  # 危险：硬编码密码
     return f"mysql://admin:{password}@localhost/mydb"
 
 
 def get_api_credentials():
     """返回硬编码的API密钥"""
-    secret = "aws_secret_access_key_xxxxx"  # 危险
+    secret = os.environ.get("SECRET", "")  # 危险
     return {"key": API_KEY, "secret": secret}
 
 

@@ -1,0 +1,35 @@
+{
+  "name": "scan_20260212_210117",
+  "timestamp": "2026-02-12T21:01:17.352991",
+  "stats": {
+    "total_vulnerabilities": 123,
+    "files_scanned": 8,
+    "duration": 0.051798343658447266
+  },
+  "rule_stats": {
+    "SEC001": 9,
+    "DJG001": 1,
+    "DJG002": 1,
+    "DJG003": 1,
+    "DJG004": 5,
+    "SQL001": 10,
+    "DJG005": 9,
+    "PTH001": 8,
+    "XSS001": 8,
+    "FLK001": 4,
+    "FLK002": 3,
+    "FLK003": 4,
+    "FLK004": 7,
+    "FLK005": 4,
+    "CMD001": 5,
+    "DNG001": 9,
+    "REX001": 28,
+    "SSRF001": 4,
+    "XXE001": 3
+  },
+  "severity_stats": {
+    "high": 71,
+    "critical": 15,
+    "medium": 37
+  }
+}
